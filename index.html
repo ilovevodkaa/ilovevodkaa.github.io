@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>_ilovevodka</title>
+<meta name="description" content="_ilovevodka — bio">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fff'/%3E%3Crect x='14' y='42' width='36' height='7' fill='%230b0b0c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #0b0b0c;
+    --text: #2b2b30;
+    --muted: #85858c;
+    --line: #e6e6ea;
+    --font-display: "Inter Tight", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-display);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection { background: var(--ink); color: #fff; }
+
+  /* ---------- фон: еле заметные серые пятна, чтобы белый не был плоским ---------- */
+  .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .bg i {
+    position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(20, 20, 45, .065), rgba(20, 20, 45, 0));
+    animation: drift 28s ease-in-out infinite alternate;
+  }
+  .bg i:nth-child(1) { left: -22vmax; top: -32vmax; }
+  .bg i:nth-child(2) { right: -26vmax; bottom: -36vmax; animation-duration: 36s; animation-direction: alternate-reverse; }
+  .bg i:nth-child(3) { left: 32%; top: 38%; width: 48vmax; height: 48vmax; opacity: .6; animation-duration: 44s; }
+  @keyframes drift { to { transform: translate3d(9vmax, 6vmax, 0) scale(1.16); } }
+
+  /* ---------- канвас с символами ---------- */
+  #fx { position: fixed; left: 0; top: 0; z-index: 1; pointer-events: none; }
+
+  /* ---------- вход: из блюра в резкость ---------- */
+  .bg, .page {
+    opacity: 0; filter: blur(30px); transform: scale(1.04);
+    transition: opacity 1.4s var(--ease), filter 1.7s var(--ease), transform 1.9s var(--ease);
+    will-change: opacity, filter, transform;
+  }
+  body.is-in .bg, body.is-in .page { opacity: 1; filter: blur(0); transform: none; }
+  body.is-settled .bg, body.is-settled .page { filter: none; will-change: auto; transition: none; }
+
+  /* ---------- каркас ---------- */
+  .clip { overflow: hidden; overflow: clip; }   /* чтобы scale() на входе не рождал скроллбар */
+  .page {
+    position: relative; z-index: 2;
+    min-height: 100vh; min-height: 100svh;
+    display: grid; grid-template-rows: auto 1fr auto;
+    grid-template-columns: minmax(0, 1fr);   /* иначе длинная строка статуса распирает страницу */
+    padding: clamp(16px, 2.4vw, 28px) clamp(18px, 3vw, 36px);
+  }
+  .bar {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    font: 400 12px/1 var(--font-mono); letter-spacing: .02em; color: var(--muted);
+    user-select: none;
+  }
+  .bar > * { min-width: 0; white-space: nowrap; }
+  .bar > .fixed { flex: none; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* статус из Discord: точка + строка, которая перепечатывается при смене */
+  .status { display: inline-flex; align-items: center; gap: .75em; }
+  .status__dot {
+    flex: none; width: 7px; height: 7px; border-radius: 50%; background: #b9b9c0;
+    transition: background-color .5s ease, transform .5s var(--ease), width .5s var(--ease), margin .5s var(--ease);
+  }
+  .status[data-state="none"] .status__dot { width: 0; margin-right: -.75em; transform: scale(0); }
+  .status[data-state="online"] .status__dot { background: #23a55a; animation: pulse 2.6s ease-out infinite; }
+  .status[data-state="idle"] .status__dot { background: #f0b232; }
+  .status[data-state="dnd"] .status__dot { background: #f23f43; }
+  .status__text { min-width: 0; min-height: 1.6em; overflow: hidden; text-overflow: ellipsis; line-height: 1.6; }   /* min-height: шапка не схлопывается, пока строка пустая */
+  .status__extra { flex: none; }
+  .status__extra:empty { display: none; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(35, 165, 90, .45); } 70%, 100% { box-shadow: 0 0 0 7px rgba(35, 165, 90, 0); } }
+
+  /* подвал: (пусто) | моё время по центру | координаты справа */
+  .bar--bottom { display: grid; grid-template-columns: 1fr auto 1fr; }
+  .clock { grid-column: 2; font-variant-numeric: tabular-nums; }
+  .clock__sep { font-style: normal; animation: tick 2s steps(1) infinite; }
+  @keyframes tick { 50% { opacity: .25; } }
+  .coords { grid-column: 3; justify-self: end; font-variant-numeric: tabular-nums; }
+  @media (hover: none), (max-width: 640px) {
+    .coords { display: none; }   /* на телефоне остаётся только время — по центру */
+  }
+
+  .stage {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 7vh 0 8vh;
+  }
+
+  /* ---------- ник ---------- */
+  .nick {
+    --L: .56; --gap: .08; --w: .066; --H: .94; --drop: .125; --k: .596;
+    --base: .863; --basei: .863; --cut: .26; --dotx: .11;
+    margin: 0; font-weight: 600; line-height: 1; letter-spacing: -.045em; white-space: nowrap; text-align: left;
+    -webkit-user-select: none; user-select: none; cursor: default; touch-action: manipulation;
+    font-size: clamp(44px, 13vw, 176px);
+  }
+  .nick__inner {
+    position: relative; display: inline-block;
+    padding-left: calc((var(--L) + var(--gap)) * 1em);
+    will-change: transform;
+  }
+  .word { display: inline-block; padding-block: .2em; margin-block: -.2em; }
+
+  /* каретка «I», которая в конце падает и становится «_» */
+  .caret {
+    position: absolute;
+    left: calc(var(--L) * 1em);
+    top: calc((var(--base) + var(--drop) - var(--H)) * 1em);
+    width: calc(var(--w) * 1em); height: calc(var(--H) * 1em);
+    background: var(--ink); border-radius: .012em;
+    box-shadow: 0 0 0 .04em var(--bg);   /* белая обводка: каретка не сливается с буквами, когда едет по слову */
+    transform-origin: 0 100%; will-change: transform;
+    transition: box-shadow .5s ease;
+  }
+  .nick.done .caret { box-shadow: 0 0 0 0 transparent; }
+  .caret.blink { animation: blink 1s ease-in-out infinite; }
+  @keyframes blink { 0%, 40% { opacity: 1; } 50%, 90% { opacity: 0; } 100% { opacity: 1; } }
+
+  /* «i» из двух слоёв: ножка и точка — это одна и та же буква, разрезанная clip-path'ом */
+  .i { position: relative; display: inline-block; }
+  .i-stem, .i-dot { display: block; }
+  .i-stem {
+    clip-path: inset(calc(var(--cut) * 1em) -1em -1em -1em);
+    transform-origin: calc(var(--dotx) * 1em) calc(var(--basei) * 1em);
+  }
+  .i-dot {
+    position: absolute; left: 0; top: 0; opacity: 0;
+    clip-path: inset(-3em -1em calc((1 - var(--cut)) * 1em) -1em);
+    transform-origin: calc(var(--dotx) * 1em) calc(var(--cut) * 1em);
+    will-change: transform;
+  }
+
+  /* финальное состояние — всё в em, поэтому не ломается при ресайзе */
+  .nick.done .caret { transform: rotate(-90deg) scaleY(var(--k)); }
+  .nick.done .i-dot { opacity: 1; }
+
+  /* ---------- текст, который «пишется» ---------- */
+  .tagline {
+    margin: clamp(18px, 2.8vw, 38px) 0 0;
+    font: 400 clamp(12px, 1.5vw, 14.5px)/1.5 var(--font-mono); letter-spacing: .01em; color: var(--muted);
+  }
+  .about {
+    margin: 26px 0 0; max-width: 35em;
+    font-size: clamp(16px, 1.9vw, 19.5px); line-height: 1.55; color: var(--text); text-wrap: balance;
+  }
+  .type .ch { opacity: 0; filter: blur(4px); transition: opacity .25s ease, filter .4s ease; }
+  .type .ch.on { opacity: 1; filter: none; }
+
+  .tcaret {
+    position: absolute; left: 0; top: 0; width: 1.5px; height: 1em; margin-left: 1px;
+    background: var(--ink); opacity: 0; pointer-events: none;
+  }
+  .tcaret.on { opacity: 1; }
+  .tcaret.on.idle { animation: blink 1s ease-in-out infinite; }
+
+  /* ---------- ссылки ---------- */
+  .links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 36px; }
+  .link {
+    display: inline-flex; align-items: center; gap: .65em;
+    padding: .78em 1.05em .78em 1.2em;
+    border: 1px solid var(--line); border-radius: 999px;
+    font: 500 13px/1 var(--font-mono); color: var(--ink); text-decoration: none;
+    background: rgba(255, 255, 255, .62);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    opacity: 0; transform: translateY(10px); filter: blur(6px);
+    transition: opacity .6s var(--ease), transform .7s var(--ease), filter .7s var(--ease),
+                background .35s ease, color .35s ease, border-color .35s ease, box-shadow .35s ease;
+  }
+  .link.on { opacity: 1; transform: none; filter: none; }
+  .link .arr { display: inline-block; transition: transform .35s var(--ease); }
+  .link.on:hover {
+    background: var(--ink); color: #fff; border-color: var(--ink);
+    transform: translateY(-2px); box-shadow: 0 10px 24px -12px rgba(0, 0, 0, .45);
+  }
+  .link:hover .arr { transform: translate(2px, -2px); }
+  .link:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+  /* кнопка «скопировать ник» + подсказка над ней */
+  .link--copy { position: relative; cursor: pointer; -webkit-appearance: none; appearance: none; }
+  .link--copy:hover .arr { transform: scale(1.14); }
+  .tip {
+    position: absolute; left: 50%; bottom: calc(100% + 10px);
+    padding: .6em .85em; border-radius: 8px; background: var(--ink); color: #fff;
+    font: 500 11.5px/1 var(--font-mono); letter-spacing: .01em; white-space: nowrap;
+    opacity: 0; filter: blur(4px); transform: translate(-50%, 5px); pointer-events: none;
+    transition: opacity .25s ease, filter .3s ease, transform .3s var(--ease);
+  }
+  .link--copy.on:hover .tip, .link--copy.on:focus-visible .tip, .link--copy.copied .tip { opacity: 1; filter: none; transform: translate(-50%, 0); }
+
+  @media (max-width: 520px) {
+    .about br { display: none; }
+    .links { gap: 8px; margin-top: 30px; }
+    .link { font-size: 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg i, .caret.blink, .tcaret.on.idle, .status__dot, .clock__sep { animation: none !important; }
+    .bg, .page, .link, .tip, .type .ch { transition: none; }
+  }
+</style>
+
+<noscript>
+  <style>
+    .bg, .page { opacity: 1; filter: none; transform: none; }
+    .caret { transform: rotate(-90deg) scaleY(var(--k)); }
+    .i-dot, .link { opacity: 1; }
+    .link { transform: none; filter: none; }
+  </style>
+</noscript>
+</head>
+
+<body>
+  <div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <div class="clip">
+  <div class="page">
+    <header class="bar">
+      <!-- пока нет данных из Discord (или ID не задан) тут просто «( bio )» -->
+      <span class="status" data-state="none" role="status"><i class="status__dot" aria-hidden="true"></i><span class="status__text" aria-hidden="true">( bio )</span><span class="status__extra" aria-hidden="true"></span><span class="sr"></span></span>
+      <span class="fixed">© 2026</span>
+    </header>
+
+    <main class="stage">
+      <!-- Ник. Внутри .nick__inner не ставь пробелы и переносы — поедут буквы. -->
+      <h1 class="nick" aria-label="_ilovevodka"><span class="nick__inner" aria-hidden="true"><span class="caret"></span><span class="word"><span class="i"><span class="i-stem">i</span><span class="i-dot">i</span></span>lovevodka</span></span></h1>
+
+      <!-- ↓↓↓ ТЕКСТЫ: меняй как хочешь ↓↓↓ -->
+      <p class="tagline type">пишу код. играю в игры. не сплю по ночам.</p>
+
+      <p class="about type">Привет! Это моя страничка. Скоро тут появится пара слов обо мне, а пока — ссылки, где меня можно найти.</p>
+
+      <!-- ↓↓↓ ССЫЛКИ ↓↓↓
+           У Discord нет ссылки на профиль по нику, поэтому его кнопка копирует ник из data-copy. -->
+      <nav class="links" aria-label="Ссылки">
+        <a class="link" href="https://t.me/ilovecodka" target="_blank" rel="me noopener"><span class="type">telegram</span><span class="arr" aria-hidden="true">↗</span></a>
+        <button class="link link--copy" type="button" data-copy="_ilovevodka"><span class="type">discord</span><svg class="arr" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.4"/><path d="M8 4V2.9a1.4 1.4 0 0 0-1.4-1.4H2.9a1.4 1.4 0 0 0-1.4 1.4v3.7A1.4 1.4 0 0 0 2.9 8H4"/></svg><span class="tip" aria-hidden="true"></span><span class="sr" role="status"></span></button>
+        <a class="link" href="https://github.com/ilovevodkaa" target="_blank" rel="me noopener"><span class="type">github</span><span class="arr" aria-hidden="true">↗</span></a>
+        <a class="link" href="https://steamcommunity.com/id/arthasfrostmorn/" target="_blank" rel="me noopener"><span class="type">steam</span><span class="arr" aria-hidden="true">↗</span></a>
+      </nav>
+
+      <span class="tcaret" aria-hidden="true"></span>
+    </main>
+
+    <footer class="bar bar--bottom">
+      <span class="clock" hidden>у меня сейчас <span class="clock__t"></span></span>
+      <span class="coords">x 0000 · y 0000</span>
+    </footer>
+  </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ===================================================================
+     НАСТРОЙКИ — меняй тут
+  =================================================================== */
+  const CONFIG = {
+    // Твой Discord ID — цифры ОБЯЗАТЕЛЬНО В КАВЫЧКАХ: '123456789012345678'
+    // (Настройки → Расширенные → Режим разработчика, потом ПКМ по себе → «Копировать ID пользователя»).
+    // Чтобы статус заработал, зайди на сервер Lanyard: https://discord.gg/lanyard. Пусто — статус выключен.
+    discordId: '',
+    // Твой часовой пояс для строки «у меня сейчас 03:12». Пусто — строка скрыта.
+    timeZone: 'Europe/Moscow',
+  };
+
+  /* ===================================================================
+     helpers
+  =================================================================== */
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const ease = {
+    inOut: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+    outQuad: p => 1 - (1 - p) * (1 - p),
+    inQuad: p => p * p,
+  };
+  function tween(ms, fn, easing = ease.inOut) {
+    return new Promise(resolve => {
+      const t0 = performance.now();
+      const step = now => {
+        const p = clamp((now - t0) / ms, 0, 1);
+        fn(easing(p));
+        p < 1 ? requestAnimationFrame(step) : resolve();
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ===================================================================
+     FX: сетка символов за курсором + всплеск по клику
+     Каждая клетка хранит «энергию»: курсор её заряжает, со временем она
+     затухает, а символ по дороге меняется от плотного к лёгкому.
+  =================================================================== */
+  const fx = (() => {
+    const cv = $('#fx'), ctx = cv.getContext('2d');
+    const CELL_W = 13, CELL_H = 18, FONT_PX = 12.5, TAU = 1;   // TAU — как долго гаснет след (сек)
+    const TIERS = ["·.,:'`-", "+=~^*/\\|<>()[]{}", "#%&@$?!01"];   // слабая → сильная энергия
+    const GLYPHS = [...new Set(TIERS.join(''))];
+    const TIER_IDX = TIERS.map(t => [...t].map(c => GLYPHS.indexOf(c)));
+
+    let dpr = 1, cw = CELL_W, ch = CELL_H, cols = 0, rows = 0;
+    let E, thr, seed, atlas;
+    let rings = [], drops = [], holds = [], running = false, lastT = 0, lastPt = null;
+
+    function buildAtlas() {
+      atlas = document.createElement('canvas');
+      atlas.width = cw * GLYPHS.length; atlas.height = ch;
+      const g = atlas.getContext('2d');
+      g.fillStyle = '#0b0b0c'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = `500 ${FONT_PX * dpr}px "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace`;
+      GLYPHS.forEach((c, i) => g.fillText(c, (i + .5) * cw, ch * .54));
+    }
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cv.width = Math.round(innerWidth * dpr); cv.height = Math.round(innerHeight * dpr);
+      cv.style.width = cv.width / dpr + 'px'; cv.style.height = cv.height / dpr + 'px';
+      cw = Math.round(CELL_W * dpr); ch = Math.round(CELL_H * dpr);
+      cols = Math.ceil(cv.width / cw); rows = Math.ceil(cv.height / ch);
+      const n = cols * rows;
+      E = new Float32Array(n); thr = new Float32Array(n); seed = new Uint16Array(n);
+      for (let i = 0; i < n; i++) { thr[i] = Math.random(); seed[i] = (Math.random() * 65535) | 0; }
+      holds = [];   // в них индексы клеток старой сетки
+      buildAtlas();
+    }
+
+    // мягкая «кисть»: у каждой клетки свой порог, поэтому края получаются рваными
+    function stamp(x, y, R, power) {
+      const c0 = Math.max(0, ((x - R) / cw) | 0), c1 = Math.min(cols - 1, ((x + R) / cw) | 0);
+      const r0 = Math.max(0, ((y - R) / ch) | 0), r1 = Math.min(rows - 1, ((y + R) / ch) | 0);
+      for (let r = r0; r <= r1; r++) {
+        const dy = (r + .5) * ch - y;
+        for (let c = c0; c <= c1; c++) {
+          const dx = (c + .5) * cw - x;
+          const d = Math.sqrt(dx * dx + dy * dy) / R;
+          if (d >= 1) continue;
+          const f = 1 - d, v = f * f * (3 - 2 * f), i = r * cols + c;
+          if (v < thr[i] * .8) continue;
+          const val = power * Math.min(1, v * 1.25 + .1) * (.55 + .45 * ((seed[i] & 255) / 255));
+          if (val > E[i]) E[i] = val;
+        }
+      }
+    }
+
+    // расходящееся кольцо с неровными «лепестками»
+    function ringStamp(g) {
+      const p = g.t / g.dur;
+      if (p >= 1) return;
+      const rad = g.maxR * (1 - Math.pow(1 - p, g.pow || 3)), thick = g.thick * (1 + p), power = Math.pow(1 - p, g.fade || 1.3);
+      // закрашиваем всё, что фронт прошёл с прошлого кадра, иначе быстрая волна идёт «пунктиром» (особенно на 60 Гц и 4K)
+      const prev = g.prev || 0;
+      g.prev = rad;
+      const R = rad + thick, n = g.lobes.length;
+      const c0 = Math.max(0, ((g.x - R) / cw) | 0), c1 = Math.min(cols - 1, ((g.x + R) / cw) | 0);
+      const r0 = Math.max(0, ((g.y - R) / ch) | 0), r1 = Math.min(rows - 1, ((g.y + R) / ch) | 0);
+      for (let r = r0; r <= r1; r++) {
+        const dy = (r + .5) * ch - g.y;
+        for (let c = c0; c <= c1; c++) {
+          const dx = (c + .5) * cw - g.x;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const band = 1 - (dist > rad ? dist - rad : dist < prev ? prev - dist : 0) / thick;
+          if (band <= 0) continue;
+          const u = (Math.atan2(dy, dx) / (Math.PI * 2) + .5) * n, k = Math.floor(u), fr = u - k;
+          const lobe = lerp(g.lobes[k % n], g.lobes[(k + 1) % n], fr * fr * (3 - 2 * fr));
+          const val = band * lobe * power, i = r * cols + c;
+          if (val < thr[i] * .55) continue;
+          if (val > E[i]) E[i] = Math.min(1, val * 1.1);
+        }
+      }
+    }
+
+    function frame(t) {
+      const dt = clamp((t - lastT) / 1000, .001, .05); lastT = t;
+
+      for (const g of rings) { g.t += dt; ringStamp(g); }
+      rings = rings.filter(g => g.t < g.dur);
+
+      const drag = Math.exp(-3.4 * dt);
+      for (const d of drops) {
+        d.life -= dt / d.ttl;
+        d.x += d.vx * dt; d.y += d.vy * dt; d.vx *= drag; d.vy *= drag;
+        if (d.life > 0) stamp(d.x, d.y, d.r * (.5 + .5 * d.life), .35 + .65 * d.life);
+      }
+      drops = drops.filter(d => d.life > 0);
+
+      // «удерживаемые» фигуры (слово из пасхалки): подзаряжаем их клетки, пока не выйдет время
+      for (const h of holds) {
+        h.t += dt;
+        const pw = Math.min(1, h.t / .3);
+        for (const i of h.cells) if (Math.random() < .45) { const v = pw * (.45 + Math.random() * .55); if (v > E[i]) E[i] = v; }
+      }
+      holds = holds.filter(h => h.t < h.dur);
+
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      const decay = Math.exp(-dt / TAU), sub = dt * .1;
+      let alive = 0;
+      for (let i = 0, n = E.length; i < n; i++) {
+        let e = E[i];
+        if (e <= 0) continue;
+        e = e * decay - sub;
+        if (e <= .015) { E[i] = 0; thr[i] = Math.random(); continue; }
+        E[i] = e; alive++;
+        if (Math.random() < .035) seed[i] = (Math.random() * 65535) | 0;   // символы «мерцают»
+        const list = TIER_IDX[e > .62 ? 2 : e > .3 ? 1 : 0], gi = list[seed[i] % list.length];
+        ctx.globalAlpha = Math.min(1, e * 1.2) * .9;
+        ctx.drawImage(atlas, gi * cw, 0, cw, ch, (i % cols) * cw, ((i / cols) | 0) * ch, cw, ch);
+      }
+
+      if (alive || rings.length || drops.length || holds.length) requestAnimationFrame(frame);
+      else running = false;
+    }
+    function wake() {
+      if (running) return;
+      running = true; lastT = performance.now(); requestAnimationFrame(frame);
+    }
+
+    // x, y — в CSS-пикселях; k — размер всплеска
+    function splash(x, y, k = 1) {
+      x *= dpr; y *= dpr;
+      const s = k * dpr;
+      stamp(x, y, 30 * s, 1);
+      const lobes = new Float32Array(28);
+      for (let i = 0; i < lobes.length; i++) lobes[i] = Math.random() < .25 ? .15 : .45 + Math.random() * .55;
+      rings.push({ x, y, t: 0, dur: .7 + .25 * k, maxR: (120 + Math.random() * 50) * s, thick: 16 * s, lobes });
+      const n = Math.round((12 + Math.random() * 8) * (.5 + .5 * k));
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2, v = (220 + Math.random() * 720) * s;
+        drops.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, ttl: .35 + Math.random() * .5, r: (9 + Math.random() * 9) * dpr });
+      }
+      wake();
+    }
+
+    // ударная волна на весь экран
+    function wave(x, y) {
+      x *= dpr; y *= dpr;
+      const lobes = new Float32Array(40);
+      for (let i = 0; i < lobes.length; i++) lobes[i] = .55 + Math.random() * .45;
+      // радиус — до самого дальнего угла; pow помягче, чем у всплесков, чтобы волна именно «шла», а не вспыхивала
+      const far = Math.max(Math.hypot(x, y), Math.hypot(cv.width - x, y), Math.hypot(x, cv.height - y), Math.hypot(cv.width - x, cv.height - y));
+      rings.push({ x, y, t: 0, dur: 1.25, maxR: far + 70 * dpr, thick: 34 * dpr, lobes, fade: .55, pow: 1.7 });
+      wake();
+    }
+
+    // Слово из символов. Текст рисуется в крошечный канвас, где 1 пиксель = 1 клетка сетки,
+    // и закрашенные пиксели становятся «заряженными» клетками. На узких экранах буквы идут столбиком.
+    function word(text, hold = 1.15) {
+      const c = document.createElement('canvas');
+      c.width = cols; c.height = rows;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.setTransform(1 / cw, 0, 0, 1 / ch, 0, 0);   // дальше рисуем в пикселях экрана
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#000';
+      const W = cv.width, H = cv.height, font = s => `600 ${s}px "Inter Tight", system-ui, sans-serif`;
+      const letters = [...text];
+      if (W < H * .8) {
+        const slot = H * .9 / letters.length;
+        g.font = font(100);
+        const widest = Math.max(...letters.map(l => g.measureText(l).width));
+        g.font = font(Math.min(slot * 1.05, 100 * W * .8 / widest));
+        letters.forEach((l, i) => g.fillText(l, W / 2, H * .05 + slot * (i + .5)));
+      } else {
+        g.font = font(100);
+        g.font = font(Math.min(H * .62, 100 * W * .88 / g.measureText(text).width));
+        g.fillText(text, W / 2, H / 2);
+      }
+      const px = g.getImageData(0, 0, cols, rows).data, cells = [];
+      for (let i = 0, n = cols * rows; i < n; i++) if (px[i * 4 + 3] > 110) cells.push(i);
+      if (cells.length) { holds.push({ cells, t: 0, dur: hold }); wake(); }
+    }
+
+    function onMove(ev) {
+      const x = ev.clientX * dpr, y = ev.clientY * dpr, t = ev.timeStamp;
+      if (lastPt && t - lastPt.t < 140) {
+        const dx = x - lastPt.x, dy = y - lastPt.y, dist = Math.hypot(dx, dy);
+        const speed = dist / dpr / Math.max(1, t - lastPt.t) * 1000;        // px/s
+        const R = clamp(24 + speed * .034, 24, 76) * dpr;
+        const steps = clamp(Math.ceil(dist / (9 * dpr)), 1, 48);
+        for (let s = 1; s <= steps; s++) stamp(lastPt.x + dx * s / steps, lastPt.y + dy * s / steps, R, .95);
+      } else {
+        stamp(x, y, 24 * dpr, .8);
+      }
+      lastPt = { x, y, t };
+      wake();
+    }
+
+    resize();
+    addEventListener('resize', resize);
+    addEventListener('pointermove', onMove, { passive: true });
+    addEventListener('pointerdown', ev => { splash(ev.clientX, ev.clientY, 1); }, { passive: true });
+
+    return { splash, wave, word, rebuild: buildAtlas };
+  })();
+
+  /* ===================================================================
+     мелочи: координаты курсора в подвале
+  =================================================================== */
+  const coords = $('.coords');
+  const pad = n => String(Math.max(0, Math.round(n))).padStart(4, '0');
+  addEventListener('pointermove', e => { coords.textContent = `x ${pad(e.clientX)} · y ${pad(e.clientY)}`; }, { passive: true });
+
+  /* ===================================================================
+     «у меня сейчас 03:12» — время в поясе владельца, а не посетителя
+  =================================================================== */
+  (() => {
+    if (!CONFIG.timeZone) return;
+    let fmt;
+    try { fmt = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: CONFIG.timeZone }); }
+    catch (e) { console.warn('[bio] неизвестный часовой пояс:', CONFIG.timeZone); return; }
+
+    const el = $('.clock'), hh = document.createElement('span'), mm = document.createElement('span'), sep = document.createElement('i');
+    sep.className = 'clock__sep'; sep.textContent = ':';
+    $('.clock__t').append(hh, sep, mm);
+
+    let timer = 0;
+    function tick() {
+      const parts = fmt.formatToParts(new Date()), get = t => (parts.find(p => p.type === t) || {}).value || '--';
+      hh.textContent = get('hour'); mm.textContent = get('minute');
+      clearTimeout(timer);
+      timer = setTimeout(tick, 60000 - Date.now() % 60000 + 40);   // ровно на смене минуты
+    }
+    tick();
+    el.hidden = false;
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });   // в фоне таймеры тормозят
+  })();
+
+  /* ===================================================================
+     статус из Discord через Lanyard — https://github.com/Phineas/lanyard
+     Все строки оттуда (названия игр, треков, кастомный статус) — чужие данные,
+     поэтому в DOM они попадают только через textContent.
+  =================================================================== */
+  (() => {
+    // ID длиннее 2^53: записанный числом, он молча округляется и становится чужим
+    if (typeof CONFIG.discordId === 'number') { console.warn("[bio] discordId нужно писать в кавычках: '1234…' — как число он округляется и превращается в другой ID"); return; }
+    const ID = String(CONFIG.discordId || '').trim();
+    if (!ID) return;
+    if (!/^\d{15,22}$/.test(ID)) { console.warn('[bio] discordId должен состоять только из цифр:', ID); return; }
+
+    const box = $('.status'), textEl = $('.status__text'), extraEl = $('.status__extra'), srEl = $('.sr', box);
+    const STATES = ['online', 'idle', 'dnd', 'offline'];
+    // \b — чтобы «Outriders» или «Precursor» не превратились в «пишет код»
+    const CODE_APPS = /\b(?:visual studio|vs ?code|intellij|pycharm|webstorm|phpstorm|clion|goland|rider|neovim|sublime text|zed|cursor)\b/i;
+    const cut = (s, n) => { const a = [...String(s)]; return a.length > n ? a.slice(0, n - 1).join('') + '…' : a.join(''); };
+
+    function describe(p) {
+      const st = STATES.includes(p.discord_status) ? p.discord_status : 'offline';
+      const acts = Array.isArray(p.activities) ? p.activities.filter(a => a && typeof a === 'object') : [];
+      const byType = t => acts.find(a => a.type === t && a.name);
+      const game = byType(0), stream = byType(1), listen = byType(2), watch = byType(3), custom = acts.find(a => a.type === 4), comp = byType(5);
+      let what = '', since = 0;
+      if (game) {
+        what = (CODE_APPS.test(game.name) ? 'пишет код в ' : 'играет в ') + game.name;
+        since = Number(game.timestamps && game.timestamps.start) || 0;
+      }
+      else if (stream) what = 'стримит ' + (stream.details || stream.name);
+      else if (p.listening_to_spotify && p.spotify && p.spotify.song) {
+        const artist = String(p.spotify.artist || '').replace(/;\s*/g, ', ');
+        what = 'слушает ' + (artist ? artist + ' — ' : '') + p.spotify.song;
+      }
+      else if (listen) what = 'слушает ' + (listen.state ? listen.state + ' — ' : '') + (listen.details || listen.name);
+      else if (watch) what = 'смотрит ' + (watch.details || watch.name);
+      else if (comp) what = 'соревнуется в ' + comp.name;
+      else if (custom && custom.state) what = custom.state;
+      return { st, text: what && st !== 'offline' ? `${st} — ${cut(what, 72)}` : st, since: st === 'offline' ? 0 : since };
+    }
+
+    const fmtElapsed = ms => {
+      const m = Math.floor(ms / 60000);
+      if (!(m >= 1) || m > 60 * 24 * 14) return '';
+      return m < 60 ? `· ${m} мин` : `· ${Math.floor(m / 60)} ч ${String(m % 60).padStart(2, '0')} м`;
+    };
+
+    // перепечатываем строку: стираем старую, набираем новую; новый вызов отменяет предыдущий
+    let shown = null, since = 0, run = 0;
+    async function retype(text) {
+      const my = ++run;
+      if (reducedMotion) { textEl.textContent = text; return; }
+      const old = [...textEl.textContent], next = [...text];
+      for (let i = old.length; i > 0; i -= 2) { if (my !== run) return; textEl.textContent = old.slice(0, i).join(''); await sleep(10); }
+      for (let i = 1; i <= next.length; i++) { if (my !== run) return; textEl.textContent = next.slice(0, i).join(''); await sleep(16 + Math.random() * 22); }
+    }
+    const showElapsed = () => { extraEl.textContent = since ? fmtElapsed(Date.now() - since) : ''; };
+
+    function apply(p) {
+      if (!p || typeof p.discord_status !== 'string') return false;
+      const d = describe(p);
+      box.dataset.state = d.st;
+      since = d.since; showElapsed();
+      if (d.text !== shown) { shown = d.text; srEl.textContent = 'Discord: ' + d.text; retype(d.text); }
+      return true;
+    }
+    setInterval(showElapsed, 20000);
+
+    // нет данных или они протухли → обратно в «( bio )», чтобы не выдавать старый статус за живой
+    function goNeutral() {
+      box.dataset.state = 'none';
+      since = 0; showElapsed();
+      if (shown !== null) { shown = null; srEl.textContent = ''; retype('( bio )'); }
+    }
+
+    // WebSocket: Hello(op 1) → Initialize(op 2) → события(op 0) + heartbeat(op 3); при обрыве переподключаемся.
+    // Сервер не подтверждает heartbeat и сам рвёт молчащий сокет через 60 с. Поэтому «мёртвое» соединение
+    // (сон ноутбука, замороженная вкладка) ловим по дыре во времени между тиками и пересоздаём сокет.
+    const STALE_MS = 75000;
+    let sock = null, hb = 0, beat = 0, retry = 0, reTimer = 0, stopped = false;
+
+    function recycle() {
+      const old = sock;
+      sock = null; clearInterval(hb);
+      if (old) try { old.close(); } catch (e) {}
+      connect();
+    }
+
+    function connect() {
+      clearTimeout(reTimer);
+      if (stopped || (sock && sock.readyState <= 1)) return;
+      let s;
+      try { s = new WebSocket('wss://api.lanyard.rest/socket'); } catch (e) { return; }
+      sock = s;
+      s.onmessage = ev => {
+        if (sock !== s) return;
+        let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+        if (!m || typeof m !== 'object') return;
+        if (m.op === 1) {
+          s.send(JSON.stringify({ op: 2, d: { subscribe_to_id: ID } }));
+          clearInterval(hb);
+          beat = Date.now();
+          hb = setInterval(() => {
+            const now = Date.now(), gap = now - beat;
+            beat = now;
+            if (gap > STALE_MS) return recycle();
+            if (s.readyState === 1) s.send('{"op":3}');
+          }, clamp(Number(m.d && m.d.heartbeat_interval) || 30000, 5000, 45000));
+        } else if (m.op === 0 && (m.t === 'INIT_STATE' || m.t === 'PRESENCE_UPDATE')) {
+          retry = 0;
+          if (!apply(m.d) && m.t === 'INIT_STATE') {
+            goNeutral();
+            console.info('[bio] Lanyard не видит этот Discord ID. Зайди на сервер https://discord.gg/lanyard — и статус появится.');
+          }
+        }
+      };
+      s.onerror = () => { try { s.close(); } catch (e) {} };
+      s.onclose = () => {
+        if (sock !== s) return;
+        clearInterval(hb); sock = null;
+        if (stopped) return;
+        if (retry >= 2) goNeutral();
+        reTimer = setTimeout(connect, Math.min(30000, 1500 * 2 ** retry++));
+      };
+    }
+    setTimeout(connect, 1800);   // после блюра, чтобы было видно, как строка печатается
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) return;
+      retry = 0;
+      if (sock && sock.readyState === 1 && beat && Date.now() - beat > STALE_MS) recycle(); else connect();
+    });
+    addEventListener('online', () => { retry = 0; connect(); });
+    addEventListener('pagehide', () => { stopped = true; clearTimeout(reTimer); clearInterval(hb); if (sock) try { sock.close(); } catch (e) {} });
+    addEventListener('pageshow', ev => { if (ev.persisted) { stopped = false; connect(); } });
+  })();
+
+  /* ===================================================================
+     «печатающийся» текст
+     Буквы заранее лежат на своих местах (прозрачные), поэтому вёрстка
+     не прыгает, пока текст пишется.
+  =================================================================== */
+  const stage = $('.stage'), tcaret = $('.tcaret');
+  let lastTyped = null;
+
+  function splitChars(el) {
+    const text = el.textContent.trim();
+    el.textContent = '';
+    el.setAttribute('aria-label', text);
+    el._chars = [...text].map(c => {
+      const s = document.createElement('span');
+      s.className = 'ch'; s.textContent = c; s.setAttribute('aria-hidden', 'true');
+      el.appendChild(s);
+      return s;
+    });
+  }
+  function placeCaret(chEl) {
+    lastTyped = chEl;
+    const r = chEl.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    tcaret.style.transform = `translate(${(r.right - s.left).toFixed(1)}px, ${(r.top - s.top).toFixed(1)}px)`;
+    tcaret.style.height = r.height.toFixed(1) + 'px';
+  }
+  async function typeEl(el, { min = 16, max = 34, caret = true } = {}) {
+    if (caret) tcaret.classList.remove('idle');
+    for (const c of el._chars) {
+      c.classList.add('on');
+      if (caret) { placeCaret(c); tcaret.classList.add('on'); }
+      let d = min + Math.random() * (max - min);
+      if ('.!?'.includes(c.textContent)) d += 200;
+      else if (',—:'.includes(c.textContent)) d += 90;
+      await sleep(d);
+    }
+    if (caret) tcaret.classList.add('idle');
+  }
+
+  $$('.type').forEach(splitChars);
+  addEventListener('resize', () => { if (lastTyped) placeCaret(lastTyped); });
+
+  /* ===================================================================
+     кнопка «скопировать ник» (Discord): в подсказке — ник, по клику он уходит в буфер
+  =================================================================== */
+  async function copyText(text) {
+    try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; } } catch (e) {}
+    try {   // запасной путь: http:// и file://, где navigator.clipboard недоступен
+      const prev = document.activeElement, ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:0;top:0;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      if (prev && prev.focus) prev.focus({ preventScroll: true });
+      return ok;
+    } catch (e) { return false; }
+  }
+  $$('.link--copy').forEach(btn => {
+    const text = btn.dataset.copy || '', tip = $('.tip', btn), sr = $('.sr', btn), label = $('.type', btn);
+    const name = (label && (label.getAttribute('aria-label') || label.textContent)) || '';
+    let t1 = 0, t2 = 0;
+    tip.textContent = text;
+    btn.setAttribute('aria-label', `${name}: ${text} — скопировать ник`);
+    btn.addEventListener('click', async () => {
+      const ok = await copyText(text);
+      clearTimeout(t1); clearTimeout(t2);
+      tip.textContent = ok ? `${text} · скопировано ✓` : `${text} · скопируй вручную`;
+      sr.textContent = ok ? `Ник ${text} скопирован` : '';
+      btn.classList.add('copied');
+      t1 = setTimeout(() => {
+        btn.classList.remove('copied');
+        t2 = setTimeout(() => { tip.textContent = text; sr.textContent = ''; }, 320);   // меняем текст, когда подсказка уже погасла
+      }, 1900);
+    });
+  });
+
+  async function typeContent() {
+    await typeEl($('.tagline'), { min: 20, max: 44 });
+    await sleep(240);
+    (async () => {
+      await sleep(350);
+      for (const a of $$('.link')) {
+        a.classList.add('on');
+        typeEl($('.type', a), { min: 24, max: 40, caret: false });
+        await sleep(130);
+      }
+    })();
+    await typeEl($('.about'), { min: 11, max: 25 });
+  }
+
+  /* ===================================================================
+     интро: I → ilovevodka → _ilovevodka
+  =================================================================== */
+  const nick = $('.nick'), inner = $('.nick__inner'), caret = $('.caret'),
+        word = $('.word'), iEl = $('.i'), stem = $('.i-stem'), dot = $('.i-dot');
+  const css = getComputedStyle(nick);
+  const K = {};
+  for (const k of ['L', 'gap', 'w', 'H', 'drop']) K[k] = parseFloat(css.getPropertyValue('--' + k));
+  K.feather = .38;
+  nick.style.setProperty('--k', (K.L / K.H).toFixed(4));
+
+  const M = { fs: 100, D: 0, s0: 0, s1: 0, cut: .26, dotx: .11 };           // замеры
+  const S = { caretP: 0, revealP: 0, backP: 0, angle: 0, sy: 1, masked: true };  // состояние анимации
+  let introDone = false;
+
+  // Рисуем «i» в канвас и ищем просвет между точкой и ножкой — так разрез
+  // попадает куда надо с любым шрифтом (в т.ч. с запасным, если Google Fonts не загрузился).
+  function scanI() {
+    try {
+      const cs = getComputedStyle(nick), Z = 160, c = document.createElement('canvas');
+      c.width = Z; c.height = Math.round(Z * 1.6);
+      const g = c.getContext('2d', { willReadFrequently: true }), by = Math.round(Z * 1.2), x0 = Math.round(Z * .3);
+      g.font = `${cs.fontWeight} ${Z}px ${cs.fontFamily}`; g.textBaseline = 'alphabetic'; g.fillText('i', x0, by);
+      const px = g.getImageData(0, 0, c.width, c.height).data;
+      const ink = (x, y) => px[(y * c.width + x) * 4 + 3] > 60;
+      const rowInk = y => { for (let x = 0; x < c.width; x++) if (ink(x, y)) return true; return false; };
+      let y = 0;
+      while (y < by && !rowInk(y)) y++;
+      const dotTop = y;
+      while (y < by && rowInk(y)) y++;
+      const dotBottom = y;
+      while (y < by && !rowInk(y)) y++;
+      const stemTop = y;
+      if (dotTop >= by || stemTop >= by || stemTop === dotBottom) return null;
+      let xa = c.width, xb = 0;
+      for (let yy = dotTop; yy < dotBottom; yy++) for (let x = 0; x < c.width; x++) if (ink(x, yy)) { if (x < xa) xa = x; if (x > xb) xb = x; }
+      return { cutAbove: (by - (dotBottom + stemTop) / 2) / Z, dotx: ((xa + xb + 1) / 2 - x0) / Z };
+    } catch (e) { return null; }
+  }
+
+  function measure() {
+    const fs = parseFloat(getComputedStyle(nick).fontSize);
+    const probe = document.createElement('span');
+    probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+    stem.appendChild(probe);
+    const baseI = probe.offsetTop / fs;                       // базовая линия внутри .i
+    const baseInner = (iEl.offsetTop + probe.offsetTop) / fs; // она же внутри .nick__inner
+    probe.remove();
+
+    const scan = scanI();
+    M.cut = scan ? baseI - scan.cutAbove : .26;
+    M.dotx = scan ? scan.dotx : .11;
+    nick.style.setProperty('--base', baseInner.toFixed(4));
+    nick.style.setProperty('--basei', baseI.toFixed(4));
+    nick.style.setProperty('--cut', M.cut.toFixed(4));
+    nick.style.setProperty('--dotx', M.dotx.toFixed(4));
+
+    const Ww = word.offsetWidth, T = inner.offsetWidth, home = K.L * fs;
+    M.fs = fs;
+    M.D = K.gap * fs + Ww + .02 * fs;                                   // путь каретки
+    M.s0 = T / 2 - (home + K.w * fs / 2);                               // каретка по центру экрана
+    M.s1 = T / 2 - ((K.L + K.gap) * fs + home + M.D + K.w * fs) / 2;    // слово по центру
+  }
+
+  function render() {
+    const x = M.D * S.caretP;
+    caret.style.transform = `translate3d(${x.toFixed(2)}px,0,0) rotate(${S.angle.toFixed(2)}deg) scaleY(${S.sy.toFixed(4)})`;
+    const shift = S.backP > 0 ? lerp(M.s1, 0, S.backP) : lerp(M.s0, M.s1, S.revealP);
+    inner.style.transform = `translate3d(${shift.toFixed(2)}px,0,0)`;
+    if (S.masked) {
+      const edge = M.D * S.revealP - K.gap * M.fs, from = edge - K.feather * M.fs;
+      const m = `linear-gradient(90deg,#000 ${from.toFixed(1)}px,transparent ${edge.toFixed(1)}px)`;
+      word.style.webkitMaskImage = m; word.style.maskImage = m;
+    }
+  }
+
+  const setDot = (y, sx = 1, sy = 1) => { dot.style.transform = `translate3d(0,${y.toFixed(2)}px,0) scale(${sx.toFixed(3)},${sy.toFixed(3)})`; };
+
+  async function fallCaret() {
+    await tween(520, p => { S.angle = -90 * p; S.sy = lerp(1, K.L / K.H, p); render(); }, p => Math.pow(p, 2.4));
+    const r = inner.getBoundingClientRect();
+    fx.splash(r.left + K.L * M.fs * .5, r.top + parseFloat(nick.style.getPropertyValue('--base')) * M.fs + K.drop * M.fs, .32);
+    await tween(130, p => { S.angle = -90 + 9 * p; render(); }, ease.outQuad);
+    await tween(150, p => { S.angle = -81 - 9 * p; render(); }, ease.inQuad);
+    await tween(80,  p => { S.angle = -90 + 2.6 * p; render(); }, ease.outQuad);
+    await tween(90,  p => { S.angle = -87.4 - 2.6 * p; render(); }, ease.inQuad);
+  }
+
+  async function dropDot() {
+    const Y0 = clamp(iEl.getBoundingClientRect().top + M.fs * .5, 220, 900);
+    setDot(-Y0); dot.style.opacity = '1';
+    await tween(600, p => setDot(-Y0 * (1 - p)), ease.inQuad);
+    await landDot(.36);
+  }
+
+  // удар: точка сплющивается, ножка пружинит, из-под точки — маленький всплеск; потом два отскока
+  async function landDot(splashK) {
+    const fs = M.fs, r = iEl.getBoundingClientRect();
+    fx.splash(r.left + M.dotx * fs, r.top + M.cut * fs, splashK);
+    const A = .09;
+    tween(560, p => { stem.style.transform = `scaleY(${(1 - A * Math.exp(-4.5 * p) * Math.cos(p * Math.PI * 3.2)).toFixed(4)})`; }, p => p)
+      .then(() => { stem.style.transform = ''; });
+
+    const b1 = fs * .2, b2 = fs * .055;
+    await tween(70,  p => setDot(0, 1 + .22 * p, 1 - .24 * p), ease.outQuad);
+    await tween(150, p => setDot(-b1 * p, 1.22 - .22 * p, .76 + .24 * p), ease.outQuad);
+    await tween(160, p => setDot(-b1 * (1 - p)), ease.inQuad);
+    await tween(50,  p => setDot(0, 1 + .1 * p, 1 - .1 * p), ease.outQuad);
+    await tween(90,  p => setDot(-b2 * p, 1.1 - .1 * p, .9 + .1 * p), ease.outQuad);
+    await tween(100, p => setDot(-b2 * (1 - p)), ease.inQuad);
+  }
+
+  function finishIntro() {
+    introDone = true;
+    nick.classList.add('done');
+    for (const el of [caret, inner, dot, stem]) el.style.transform = '';
+    dot.style.opacity = '';
+    word.style.webkitMaskImage = word.style.maskImage = '';
+    inner.style.willChange = 'auto';
+  }
+
+  async function runIntro() {
+    measure(); render();
+    document.body.classList.add('is-in');
+    setTimeout(() => document.body.classList.add('is-settled'), 2100);
+
+    caret.classList.add('blink');
+    await sleep(1300);
+    caret.classList.remove('blink');
+
+    // каретка едет вправо и «проявляет» слово
+    await tween(1550, p => { S.caretP = S.revealP = p; render(); });
+    S.masked = false; word.style.webkitMaskImage = word.style.maskImage = 'none';
+    await sleep(420);
+
+    // возвращается влево
+    await tween(1000, p => { S.backP = p; S.caretP = 1 - p; render(); });
+    await sleep(150);
+
+    // падает влево → «_», а сверху на i прилетает точка
+    const falling = fallCaret();
+    await sleep(340);
+    await Promise.all([falling, dropDot()]);
+
+    finishIntro();
+    await sleep(220);
+    await typeContent();
+  }
+
+  /* ===================================================================
+     пасхалка: набери на клавиатуре «vodka» (в любой раскладке) или «водка»,
+     либо 5 раз быстро тапни по нику
+  =================================================================== */
+  let hopping = false, partyUntil = 0;
+
+  async function hopDot() {
+    if (hopping) return;
+    hopping = true;
+    const h = M.fs * .62;
+    await tween(300, p => setDot(-h * p, 1 - .06 * (1 - p), 1 + .1 * (1 - p)), ease.outQuad);
+    await tween(300, p => setDot(-h * (1 - p)), ease.inQuad);
+    await landDot(.3);
+    dot.style.transform = '';
+    hopping = false;
+  }
+
+  function party() {
+    const now = performance.now();
+    if (!introDone || now < partyUntil) return;
+    partyUntil = now + 2800;
+
+    // «уменьшить движение» в системе: только слово, которое проявляется на месте и гаснет — без волны, всплесков и прыжков
+    if (reducedMotion) { fx.word('VODKA'); return; }
+
+    const r = inner.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    fx.wave(cx, cy);
+    fx.splash(cx, cy, 1.5);
+    for (let i = 0; i < 12; i++)
+      setTimeout(() => fx.splash(Math.random() * innerWidth, Math.random() * innerHeight, .6 + Math.random() * .9), 140 + i * 90 + Math.random() * 60);
+    setTimeout(() => fx.word('VODKA'), 420);
+    hopDot();
+    tween(750, p => { inner.style.transform = `scale(${(1 + .05 * Math.exp(-4 * p) * Math.sin(p * Math.PI * 3)).toFixed(4)})`; }, p => p)
+      .then(() => { inner.style.transform = ''; });
+  }
+
+  let codeBuf = '', keyBuf = '';
+  addEventListener('keydown', ev => {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.repeat) return;
+    const t = ev.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return;
+    // code — физическая клавиша (сработает и в русской раскладке), key — то, что реально напечаталось
+    const code = ev.code || '', key = ev.key || '';
+    codeBuf = (codeBuf + (/^Key[A-Z]$/.test(code) ? code[3].toLowerCase() : ' ')).slice(-8);
+    keyBuf = (keyBuf + (key.length === 1 ? key.toLowerCase() : ' ')).slice(-8);
+    if (codeBuf.endsWith('vodka') || keyBuf.endsWith('vodka') || keyBuf.endsWith('водка')) { codeBuf = keyBuf = ''; party(); }
+  });
+
+  let taps = [];
+  nick.addEventListener('pointerdown', ev => {
+    taps = taps.filter(t => ev.timeStamp - t < 1600);
+    taps.push(ev.timeStamp);
+    if (taps.length >= 5) { taps = []; party(); }
+  });
+
+  console.log('%c_ilovevodka', 'font: 600 22px/1.6 system-ui, sans-serif', '\nпсс… набери на клавиатуре vodka');
+
+  function showFinal() {
+    measure();
+    document.body.classList.add('is-in', 'is-settled');
+    finishIntro();
+    $$('.ch').forEach(c => c.classList.add('on'));
+    $$('.link').forEach(a => a.classList.add('on'));
+  }
+
+  addEventListener('resize', () => { measure(); if (!introDone) render(); });
+
+  const fontsReady = Promise.race([
+    Promise.all([
+      document.fonts.load('600 100px "Inter Tight"'),
+      document.fonts.load('400 16px "Inter Tight"'),
+      document.fonts.load('500 12px "JetBrains Mono"'),
+      document.fonts.load('400 12px "JetBrains Mono"'),
+    ]).catch(() => {}),
+    sleep(2500),
+  ]);
+  // если шрифт доехал позже таймаута — перемеряем
+  document.fonts.addEventListener?.('loadingdone', () => { fx.rebuild(); measure(); if (!introDone) render(); });
+
+  fontsReady.then(() => {
+    fx.rebuild();
+    if (reducedMotion) showFinal(); else runIntro();
+  });
+})();
+</script>
+</body>
+</html>
