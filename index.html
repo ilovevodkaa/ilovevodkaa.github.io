@@ -16,7 +16,7 @@
     --bg: #ffffff;
     --ink: #0b0b0c;
     --text: #2b2b30;
-    --muted: #85858c;
+    --muted: #74747c;   /* 4.6:1 на белом — мелкий серый текст проходит по контрасту */
     --line: #e6e6ea;
     --font-display: "Inter Tight", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -68,8 +68,47 @@
     min-height: 100vh; min-height: 100svh;
     display: grid; grid-template-rows: auto 1fr auto;
     grid-template-columns: minmax(0, 1fr);   /* иначе длинная строка статуса распирает страницу */
-    padding: clamp(16px, 2.4vw, 28px) clamp(18px, 3vw, 36px);
+    --pad-y: clamp(16px, 2.4vw, 28px); --pad-x: clamp(18px, 3vw, 36px);
+    padding: var(--pad-y) var(--pad-x);
   }
+
+  /* шапка липнет к верху (в портфолио страница длинная); фон появляется только после прокрутки */
+  .bar--top {
+    position: sticky; top: 0; z-index: 10;
+    margin: calc(-1 * var(--pad-y)) calc(-1 * var(--pad-x)) 0;
+    padding: var(--pad-y) var(--pad-x) 12px;
+    transition: background-color .35s ease, box-shadow .35s ease;
+  }
+  .bar--top.is-scrolled {
+    background: rgba(255, 255, 255, .8); box-shadow: 0 1px 0 var(--line);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  }
+
+  /* переключатель «био | портфолио»: чёрная плашка переезжает под активную вкладку */
+  .tabs {
+    position: relative; display: inline-flex; padding: 3px;
+    border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 255, 255, .62);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .tabs__thumb {
+    position: absolute; left: 0; top: 3px; bottom: 3px; width: var(--w, 0); border-radius: 999px; background: var(--ink);
+    transform: translateX(var(--x, 0)); transition: transform .5s var(--ease), width .5s var(--ease);
+  }
+  .tab {
+    position: relative; z-index: 1; padding: .66em 1.05em; border-radius: 999px;
+    font: 500 12px/1 var(--font-mono); letter-spacing: .01em; color: var(--muted); text-decoration: none;
+    transition: color .3s ease;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-current="page"] { color: #fff; }
+  .tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* страницы: уходят в блюр и приходят из блюра, как весь сайт на входе */
+  .views { display: grid; min-width: 0; }
+  .view { min-width: 0; transition: opacity .5s var(--ease), filter .6s var(--ease), transform .6s var(--ease); }
+  .view[hidden] { display: none !important; }
+  .view.is-leaving { opacity: 0; filter: blur(14px); transform: scale(.985); transition-duration: .24s; }
+  .view.is-entering { opacity: 0; filter: blur(20px); transform: scale(1.025); transition: none; }
   .bar {
     display: flex; justify-content: space-between; align-items: center; gap: 16px;
     font: 400 12px/1 var(--font-mono); letter-spacing: .02em; color: var(--muted);
@@ -211,6 +250,125 @@
   }
   .link--copy.on:hover .tip, .link--copy.on:focus-visible .tip, .link--copy.copied .tip { opacity: 1; filter: none; transform: translate(-50%, 0); }
 
+  /* =====================================================================
+     ПОРТФОЛИО
+  ===================================================================== */
+  .work { width: 100%; max-width: 1180px; margin: 0 auto; padding: clamp(36px, 8vh, 90px) 0 clamp(60px, 12vh, 140px); }
+  .eyebrow { margin: 0; font: 400 12px/1.6 var(--font-mono); letter-spacing: .02em; color: var(--muted); }
+  .work__title { margin: .16em 0 0; font-weight: 600; font-size: clamp(44px, 10vw, 136px); line-height: 1; letter-spacing: -.045em; }
+  .work__lead { margin: clamp(18px, 2.4vw, 30px) 0 0; max-width: 34em; font-size: clamp(16px, 1.9vw, 19.5px); line-height: 1.55; color: var(--text); }
+
+  /* всё, что «проявляется» при прокрутке */
+  .reveal { opacity: 0; filter: blur(12px); transform: translateY(22px); transition: opacity .8s var(--ease), filter .9s var(--ease), transform .9s var(--ease); }
+  .reveal.is-in { opacity: 1; filter: none; transform: none; }
+
+  .case { margin-top: clamp(56px, 10vh, 120px); padding-top: clamp(28px, 4vw, 44px); border-top: 1px solid var(--line); }
+  .case__meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 400 12px/1.6 var(--font-mono); color: var(--muted); }
+  .case__meta b { font-weight: 500; color: var(--ink); }
+  .case__title { margin: 14px 0 0; font-weight: 600; font-size: clamp(30px, 5.2vw, 64px); line-height: 1.04; letter-spacing: -.035em; text-wrap: balance; }
+  .case__desc { margin: 20px 0 0; max-width: 41em; font-size: clamp(16px, 1.7vw, 18.5px); line-height: 1.6; color: var(--text); }
+  .case__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 26px; }
+  .chip { padding: .7em 1em; border: 1px dashed #d4d4db; border-radius: 999px; font: 400 12px/1 var(--font-mono); color: var(--muted); white-space: nowrap; }
+
+  /* --- цепочка шагов, соединённых линиями --- */
+  .flow { position: relative; margin-top: clamp(56px, 9vh, 110px); }
+  .flow__wires { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .wire { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linecap: round; }
+  .wire--ghost { stroke: #d9d9e0; stroke-dasharray: 1.5 7; }
+  .port { fill: #fff; stroke: var(--ink); stroke-width: 1.5; transition: fill .4s ease; }
+  .port.is-live { fill: var(--ink); }
+  .packet { fill: var(--ink); opacity: 0; }
+
+  .flow__steps { list-style: none; margin: 0; padding: 0; display: grid; row-gap: clamp(96px, 15vh, 180px); }
+  .step {
+    position: relative; z-index: 1; display: grid; align-items: center;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); column-gap: clamp(32px, 6vw, 96px);
+  }
+  .step:nth-child(odd) { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  .step:nth-child(odd) .step__visual { order: -1; }   /* нечётные шаги: картинка слева, текст справа */
+  .step__n { display: inline-flex; align-items: center; gap: .9em; font: 500 12px/1 var(--font-mono); color: var(--muted); }
+  .step__n::after { content: ''; width: 30px; height: 1px; background: currentColor; opacity: .55; }
+  .step__title { margin: 14px 0 0; font-weight: 600; font-size: clamp(24px, 3vw, 38px); line-height: 1.08; letter-spacing: -.03em; text-wrap: balance; }
+  .step__desc { margin: 14px 0 0; max-width: 30em; font-size: clamp(15px, 1.5vw, 17px); line-height: 1.6; color: var(--text); }
+  .step__visual { min-width: 0; }
+
+  .card-shadow { box-shadow: 0 34px 70px -40px rgba(10, 10, 30, .34), 0 2px 6px rgba(10, 10, 30, .04); }
+
+  /* 1 — скрин сайта в рамке браузера */
+  .shot { display: block; margin: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: #fff; color: inherit; text-decoration: none; transition: transform .6s var(--ease), box-shadow .6s var(--ease); }
+  a.shot:hover { transform: translateY(-4px); }
+  .shot__bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); background: #fafafb; }
+  .shot__bar i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #dddde3; }
+  .shot__url { flex: 1; min-width: 0; margin-left: 8px; padding: .5em .95em; border-radius: 999px; background: #efeff2; font: 400 11px/1 var(--font-mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .shot img { display: block; width: 100%; height: auto; }
+
+  /* 2 — «мозг»: чёрная карточка, в которой ИИ разбирает заявку */
+  .ai { border-radius: 18px; background: var(--ink); color: #e6e6ec; padding: 20px 22px 24px; font: 400 13px/1.7 var(--font-mono); }
+  .ai__head { display: flex; justify-content: space-between; gap: 12px; font-size: 11.5px; color: #83838d; }
+  .ai__in { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: #18181c; color: #fff; min-height: 3.1em; }
+  .ai__in::before { content: '> '; color: #6c6c76; }
+  .ai__scan { height: 2px; margin: 18px 0 16px; border-radius: 2px; background: #232328; overflow: hidden; }
+  .ai__scan::after { content: ''; display: block; width: 32%; height: 100%; border-radius: 2px; background: #fff; transform: translateX(-110%); }
+  .ai.is-scanning .ai__scan::after { animation: scan 1.1s ease-in-out infinite; }
+  .ai.is-done .ai__scan::after { width: 100%; transform: none; transition: transform .5s var(--ease); }
+  @keyframes scan { 0% { transform: translateX(-110%); } 100% { transform: translateX(330%); } }
+  .ai__rows { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 20px; margin: 0; }
+  .ai__rows dt { color: #83838d; }
+  .ai__rows dd { margin: 0; color: #fff; }
+  .ai__rows dt, .ai__rows dd { opacity: 0; transition: opacity .4s ease; }
+  .ai__rows .on { opacity: 1; }
+  .ai__dot { display: inline-block; width: 8px; height: 8px; margin-right: .6em; border-radius: 50%; background: #23a55a; }
+
+  /* 3 — уведомление в Telegram (настоящий скрин внутри «чата») */
+  .tg { margin: 0 auto; max-width: 470px; border-radius: 20px; overflow: hidden; background: #0e1621; }
+  .tg__head { display: flex; align-items: center; gap: 11px; padding: 12px 14px; background: #17212b; color: #fff; font: 500 14px/1.2 var(--font-display); }
+  .tg__ava { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #37aee2, #1e96c8); font-size: 15px; }
+  .tg__sub { display: block; margin-top: 3px; font: 400 11px/1 var(--font-mono); color: #6d7f8f; }
+  .tg__body { padding: 20px 14px 22px; }
+  .tg__body img { display: block; width: 100%; max-width: 386px; height: auto; border-radius: 12px; opacity: 0; transform: translateY(14px) scale(.95); transform-origin: 0 100%; transition: opacity .5s ease .45s, transform .7s var(--ease) .45s; }
+  .step__visual.is-in .tg__body img { opacity: 1; transform: none; }
+
+  /* 4 — таблица заявок (условный макет) */
+  .sheet { border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: #fff; font: 400 12px/1 var(--font-mono); color: var(--ink); container-type: inline-size; }
+  /* таблица подстраивается под ширину самой карточки, а не экрана: узко — прячем телефон, совсем узко — ужимаем ячейки */
+  @container (max-width: 545px) { .sheet .col-phone { display: none; } }
+  @container (max-width: 375px) { .sheet th, .sheet td { padding: 0 7px; font-size: 11px; } .sheet .rn { width: 24px; } }
+  @container (max-width: 310px) { .sheet .col-urg { display: none; } }
+  .sheet__bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); font: 500 13.5px/1 var(--font-display); }
+  .sheet__bar small { font: 400 11px/1 var(--font-mono); color: var(--muted); }
+  .sheet__ico { flex: none; position: relative; width: 16px; height: 20px; border-radius: 3px; background: #1fa463; }
+  .sheet__ico::after { content: ''; position: absolute; left: 3px; right: 3px; top: 7px; bottom: 3px; border: 1.5px solid #fff; border-radius: 1px; background: linear-gradient(#fff, #fff) 50% 50% / 100% 1.5px no-repeat, linear-gradient(#fff, #fff) 50% 50% / 1.5px 100% no-repeat; }
+  .sheet__scroll { overflow-x: auto; }
+  .sheet table { width: 100%; border-collapse: collapse; }
+  .sheet th, .sheet td { height: 38px; padding: 0 12px; border-right: 1px solid #ededf1; border-bottom: 1px solid #ededf1; text-align: left; white-space: nowrap; font-weight: 400; transition: background-color .6s ease; }
+  .sheet tr > :last-child { border-right: 0; }
+  .sheet tbody tr:last-child > * { border-bottom: 0; }
+  .sheet thead th { background: #f7f7f9; color: var(--muted); }
+  .sheet .rn { width: 34px; padding: 0; text-align: center; color: #b4b4bc; background: #f7f7f9; }
+  .sheet tr.is-new td:not(.rn) { background: #ecf9f0; }
+  .sheet tr.is-new .rn { background: #1fa463; color: #fff; }
+
+  /* финал цепочки */
+  .flow__end { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 22px; margin-top: clamp(96px, 15vh, 180px); text-align: center; }
+  .done-pill { display: inline-flex; align-items: center; gap: .7em; padding: .85em 1.25em; border-radius: 999px; background: var(--ink); color: #fff; font: 500 13px/1 var(--font-mono); }
+  .done-pill::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #23a55a; }
+  .flow__cta { margin: 0; font-size: clamp(16px, 1.7vw, 18.5px); color: var(--text); }
+  .flow__cta a { color: var(--ink); text-underline-offset: .22em; text-decoration-thickness: 1px; }
+  .flow__cta a:hover { text-decoration-thickness: 2px; }
+
+  @media (max-width: 860px) {
+    .step, .step:nth-child(odd) { grid-template-columns: minmax(0, 1fr); row-gap: 26px; }
+    .step:nth-child(odd) .step__visual { order: 0; }
+    .flow__steps { row-gap: 88px; }
+    .flow__end { margin-top: 88px; align-items: flex-start; text-align: left; }
+    .tg { margin: 0; }
+  }
+  @media (max-width: 560px) {
+    .sheet .col-phone { display: none; }
+    .sheet th, .sheet td { padding: 0 10px; }
+    .ai { padding: 18px 16px 20px; font-size: 12px; }
+  }
+
   @media (max-width: 520px) {
     .about br { display: none; }
     .links { gap: 8px; margin-top: 30px; }
@@ -218,8 +376,15 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .bg i, .caret.blink, .tcaret.on.idle, .status__dot, .clock__sep { animation: none !important; }
-    .bg, .page, .link, .tip, .type .ch { transition: none; }
+    .bg i, .caret.blink, .tcaret.on.idle, .status__dot, .clock__sep, .ai__scan::after { animation: none !important; }
+    .bg, .page, .link, .tip, .type .ch, .view, .reveal, .tabs__thumb, .port, .shot, .tg__body img, .ai__rows dt, .ai__rows dd { transition: none; }
+  }
+
+  /* печать / «сохранить как PDF»: всё, что проявляется при прокрутке, должно быть видно сразу */
+  @media print {
+    .bg, .page, .reveal, .link, .type .ch, .tg__body img, .ai__rows dt, .ai__rows dd { opacity: 1 !important; filter: none !important; transform: none !important; }
+    .bar--top { position: static; }
+    #fx, .bg, .tcaret, .packet, .tabs { display: none !important; }
   }
 </style>
 
@@ -229,6 +394,11 @@
     .caret { transform: rotate(-90deg) scaleY(var(--k)); }
     .i-dot, .link { opacity: 1; }
     .link { transform: none; filter: none; }
+    /* без JS вкладки не переключаются — показываем обе страницы подряд, а сам переключатель убираем */
+    .view[hidden] { display: block !important; }
+    .tabs { display: none; }
+    .bar--top { position: static; }
+    .reveal, .tg__body img, .ai__rows dt, .ai__rows dd { opacity: 1; filter: none; transform: none; }
   </style>
 </noscript>
 </head>
@@ -239,13 +409,18 @@
 
   <div class="clip">
   <div class="page">
-    <header class="bar">
+    <header class="bar bar--top">
       <!-- пока нет данных из Discord (или ID не задан) тут просто «( bio )» -->
       <span class="status" data-state="none" role="status"><i class="status__dot" aria-hidden="true"></i><span class="status__text" aria-hidden="true">( bio )</span><span class="status__extra" aria-hidden="true"></span><span class="sr"></span></span>
-      <span class="fixed">© 2026</span>
+      <nav class="tabs fixed" aria-label="Разделы">
+        <span class="tabs__thumb" aria-hidden="true"></span>
+        <a class="tab" href="#bio" data-to="bio" aria-current="page">био</a>
+        <a class="tab" href="#portfolio" data-to="portfolio">портфолио</a>
+      </nav>
     </header>
 
-    <main class="stage">
+    <main class="views">
+    <section class="view stage" data-view="bio" aria-label="Био">
       <!-- Ник. Внутри .nick__inner не ставь пробелы и переносы — поедут буквы. -->
       <h1 class="nick" aria-label="_ilovevodka"><span class="nick__inner" aria-hidden="true"><span class="caret"></span><span class="word"><span class="i"><span class="i-stem">i</span><span class="i-dot">i</span></span>lovevodka</span></span></h1>
 
@@ -264,6 +439,109 @@
       </nav>
 
       <span class="tcaret" aria-hidden="true"></span>
+    </section>
+
+    <!-- =================================================================
+         ПОРТФОЛИО. Новая работа = ещё один <article class="case"> по образцу (целиком, вместе с <div class="flow">
+         и пустым <svg class="flow__wires"> внутри). Линии между шагами рисует скрипт — сам, по порядку блоков с data-node.
+    ================================================================== -->
+    <section class="view work" data-view="portfolio" aria-label="Портфолио" hidden>
+      <p class="eyebrow reveal">( портфолио )</p>
+      <h2 class="work__title type" data-type-on-show>_портфолио</h2>
+      <p class="work__lead reveal">Делаю сайты и автоматизации, которые снимают с людей рутину. Первая работа — ниже, дальше будет больше.</p>
+
+      <article class="case">
+        <div class="case__meta reveal"><b>01</b><span>2026</span><span>сайт + ИИ-автоматизация</span></div>
+        <h3 class="case__title reveal">Автоматизация при помощи ИИ</h3>
+        <p class="case__desc reveal">Сайт стоматологии «Улыбка». Заявка с формы попадает к ИИ: он понимает, что беспокоит человека и насколько это срочно. Администратору сразу приходит уведомление в Telegram, а запись на удобное время остаётся в Google Таблицах — без ручной работы.</p>
+        <div class="case__actions reveal">
+          <a class="link on" href="https://polite-custard-9f353c.netlify.app/" target="_blank" rel="noopener">открыть сайт<span class="arr" aria-hidden="true">↗</span></a>
+          <span class="chip">сайт</span><span class="chip">ИИ</span><span class="chip">Telegram-бот</span><span class="chip">Google Таблицы</span>
+        </div>
+
+        <div class="flow">
+          <svg class="flow__wires" aria-hidden="true" focusable="false"></svg>
+
+          <ol class="flow__steps">
+            <li class="step" data-node>
+              <div class="step__text reveal">
+                <span class="step__n">01</span>
+                <h4 class="step__title">Клиент оставляет заявку</h4>
+                <p class="step__desc">Человек заходит на сайт, пишет, что его беспокоит, или выбирает готовый вариант — и жмёт «Записаться». Без звонков и ожидания на линии.</p>
+              </div>
+              <div class="step__visual reveal" data-anchor>
+                <a class="shot card-shadow" href="https://polite-custard-9f353c.netlify.app/" target="_blank" rel="noopener" aria-label="Открыть сайт стоматологии «Улыбка»">
+                  <span class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot__url">polite-custard-9f353c.netlify.app</span></span>
+                  <img src="assets/ai-dental-form.png" width="1121" height="922" loading="lazy" decoding="async" alt="Сайт стоматологии «Улыбка»: заголовок «Лечим зубы без очередей и лишнего стресса» и форма записи на приём">
+                </a>
+              </div>
+            </li>
+
+            <li class="step" data-node>
+              <div class="step__text reveal">
+                <span class="step__n">02</span>
+                <h4 class="step__title">ИИ определяет срочность и проблему</h4>
+                <p class="step__desc">Нейросеть читает заявку и за секунды раскладывает её по полочкам: насколько это срочно, какая услуга нужна и в чём суть — одной фразой.</p>
+              </div>
+              <div class="step__visual reveal" data-anchor>
+                <div class="ai card-shadow" data-demo="ai" role="img" aria-label="ИИ разбирает заявку «Консультация по имплантам»: срочность — обычная, услуга — консультация, суть — пациент запросил консультацию по имплантации зубов">
+                  <div class="ai__head" aria-hidden="true"><span>ai · разбор заявки</span><span>#0001</span></div>
+                  <p class="ai__in" aria-hidden="true"><span class="type">«Консультация по имплантам»</span></p>
+                  <div class="ai__scan" aria-hidden="true"></div>
+                  <dl class="ai__rows" aria-hidden="true">
+                    <dt>срочность</dt><dd><i class="ai__dot"></i><span class="type">обычная</span></dd>
+                    <dt>услуга</dt><dd><span class="type">консультация</span></dd>
+                    <dt>суть</dt><dd><span class="type">Пациент запросил консультацию по имплантации зубов.</span></dd>
+                  </dl>
+                </div>
+              </div>
+            </li>
+
+            <li class="step" data-node>
+              <div class="step__text reveal">
+                <span class="step__n">03</span>
+                <h4 class="step__title">Вам приходит уведомление в Telegram</h4>
+                <p class="step__desc">Готовая карточка заявки прилетает в Telegram: срочность, имя, телефон, услуга и суть. Сразу видно, кому перезвонить первым.</p>
+              </div>
+              <div class="step__visual reveal" data-anchor>
+                <figure class="tg card-shadow">
+                  <div class="tg__head" aria-hidden="true"><span class="tg__ava">🦷</span><span>Заявки с сайта<span class="tg__sub">бот</span></span></div>
+                  <div class="tg__body"><img src="assets/ai-dental-telegram.png" width="386" height="135" loading="lazy" decoding="async" alt="Сообщение бота в Telegram: «Новая заявка — стоматология „Улыбка“. Обычная. Имя: Анна. Услуга: консультация. Суть: пациент запросил консультацию по имплантации зубов»"></div>
+                </figure>
+              </div>
+            </li>
+
+            <li class="step" data-node>
+              <div class="step__text reveal">
+                <span class="step__n">04</span>
+                <h4 class="step__title">Запись остаётся в Google Таблицах</h4>
+                <p class="step__desc">Запись на удобное время автоматически попадает в таблицу. Ничего не теряется, вся история заявок — в одном месте.</p>
+              </div>
+              <div class="step__visual reveal" data-anchor>
+                <div class="sheet card-shadow" data-demo="sheet" role="img" aria-label="Таблица заявок: новая строка — Анна, консультация, срочность обычная">
+                  <div class="sheet__bar" aria-hidden="true"><span class="sheet__ico"></span><span>Заявки</span><small>Google Таблицы</small></div>
+                  <div class="sheet__scroll" aria-hidden="true">
+                    <table>
+                      <thead><tr><th class="rn"></th><th>Имя</th><th class="col-phone">Телефон</th><th>Услуга</th><th class="col-urg">Срочность</th><th>Запись</th></tr></thead>
+                      <tbody>
+                        <tr class="row-new"><td class="rn">2</td><td><span class="type">Анна</span></td><td class="col-phone"><span class="type">+7 (•••) •••-41-24</span></td><td><span class="type">консультация</span></td><td class="col-urg"><span class="type">обычная</span></td><td><span class="type">ср · 14:30</span></td></tr>
+                        <tr><td class="rn">3</td><td></td><td class="col-phone"></td><td></td><td class="col-urg"></td><td></td></tr>
+                        <tr><td class="rn">4</td><td></td><td class="col-phone"></td><td></td><td class="col-urg"></td><td></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ol>
+
+          <div class="flow__end">
+            <span class="done-pill reveal" data-node data-anchor>заявка обработана — без ручной работы</span>
+            <p class="flow__cta reveal">Нужна такая же автоматизация? <a href="https://t.me/ilovecodka" target="_blank" rel="noopener">Напиши мне в Telegram ↗</a></p>
+          </div>
+        </div>
+      </article>
+    </section>
     </main>
 
     <footer class="bar bar--bottom">
@@ -302,11 +580,15 @@
     outQuad: p => 1 - (1 - p) * (1 - p),
     inQuad: p => p * p,
   };
+  // Время копится по кадрам, а не по часам: если вкладка была в фоне и кадры не шли,
+  // анимация продолжится с того же места, а не «перемотается» в конец.
   function tween(ms, fn, easing = ease.inOut) {
     return new Promise(resolve => {
-      const t0 = performance.now();
+      let last = 0, elapsed = 0;
       const step = now => {
-        const p = clamp((now - t0) / ms, 0, 1);
+        if (last) elapsed += Math.min(now - last, 50);
+        last = now;
+        const p = clamp(elapsed / ms, 0, 1);
         fn(easing(p));
         p < 1 ? requestAnimationFrame(step) : resolve();
       };
@@ -516,7 +798,10 @@
     addEventListener('pointermove', onMove, { passive: true });
     addEventListener('pointerdown', ev => { splash(ev.clientX, ev.clientY, 1); }, { passive: true });
 
-    return { splash, wave, word, rebuild: buildAtlas };
+    // точечный «мазок» в CSS-пикселях — им оставляют след точки, бегущие по линиям в портфолио
+    function dab(x, y, r = 14, power = .6) { stamp(x * dpr, y * dpr, r * dpr, power); wake(); }
+
+    return { splash, wave, word, dab, rebuild: buildAtlas };
   })();
 
   /* ===================================================================
@@ -707,9 +992,11 @@
   }
   function placeCaret(chEl) {
     lastTyped = chEl;
+    if (!stage.offsetParent) return;   // био скрыто (открыто портфолио) — переставим каретку, когда вернёмся
     const r = chEl.getBoundingClientRect(), s = stage.getBoundingClientRect();
-    tcaret.style.transform = `translate(${(r.right - s.left).toFixed(1)}px, ${(r.top - s.top).toFixed(1)}px)`;
-    tcaret.style.height = r.height.toFixed(1) + 'px';
+    const k = s.width / stage.offsetWidth || 1;   // страница может быть ещё увеличена (идёт вход из блюра) — делим масштаб обратно
+    tcaret.style.transform = `translate(${((r.right - s.left) / k).toFixed(1)}px, ${((r.top - s.top) / k).toFixed(1)}px)`;
+    tcaret.style.height = (r.height / k).toFixed(1) + 'px';
   }
   async function typeEl(el, { min = 16, max = 34, caret = true } = {}) {
     if (caret) tcaret.classList.remove('idle');
@@ -766,7 +1053,7 @@
     await sleep(240);
     (async () => {
       await sleep(350);
-      for (const a of $$('.link')) {
+      for (const a of $$('.links .link')) {
         a.classList.add('on');
         typeEl($('.type', a), { min: 24, max: 40, caret: false });
         await sleep(130);
@@ -815,7 +1102,10 @@
     } catch (e) { return null; }
   }
 
+  const bioVisible = () => !!nick.offsetParent;   // false, пока открыто портфолио
+
   function measure() {
+    if (!bioVisible()) return;   // у скрытого блока все размеры нулевые — перемеряем, когда био снова покажут
     const fs = parseFloat(getComputedStyle(nick).fontSize);
     const probe = document.createElement('span');
     probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
@@ -856,7 +1146,7 @@
   async function fallCaret() {
     await tween(520, p => { S.angle = -90 * p; S.sy = lerp(1, K.L / K.H, p); render(); }, p => Math.pow(p, 2.4));
     const r = inner.getBoundingClientRect();
-    fx.splash(r.left + K.L * M.fs * .5, r.top + parseFloat(nick.style.getPropertyValue('--base')) * M.fs + K.drop * M.fs, .32);
+    if (bioVisible()) fx.splash(r.left + K.L * M.fs * .5, r.top + parseFloat(nick.style.getPropertyValue('--base')) * M.fs + K.drop * M.fs, .32);
     await tween(130, p => { S.angle = -90 + 9 * p; render(); }, ease.outQuad);
     await tween(150, p => { S.angle = -81 - 9 * p; render(); }, ease.inQuad);
     await tween(80,  p => { S.angle = -90 + 2.6 * p; render(); }, ease.outQuad);
@@ -873,7 +1163,7 @@
   // удар: точка сплющивается, ножка пружинит, из-под точки — маленький всплеск; потом два отскока
   async function landDot(splashK) {
     const fs = M.fs, r = iEl.getBoundingClientRect();
-    fx.splash(r.left + M.dotx * fs, r.top + M.cut * fs, splashK);
+    if (bioVisible()) fx.splash(r.left + M.dotx * fs, r.top + M.cut * fs, splashK);
     const A = .09;
     tween(560, p => { stem.style.transform = `scaleY(${(1 - A * Math.exp(-4.5 * p) * Math.cos(p * Math.PI * 3.2)).toFixed(4)})`; }, p => p)
       .then(() => { stem.style.transform = ''; });
@@ -896,13 +1186,12 @@
     inner.style.willChange = 'auto';
   }
 
-  async function runIntro() {
+  // wait — сколько каретка мигает до старта: при загрузке дольше (пока страница выходит из блюра)
+  async function runIntro(wait = 1300) {
     measure(); render();
-    document.body.classList.add('is-in');
-    setTimeout(() => document.body.classList.add('is-settled'), 2100);
 
     caret.classList.add('blink');
-    await sleep(1300);
+    await sleep(wait);
     caret.classList.remove('blink');
 
     // каретка едет вправо и «проявляет» слово
@@ -942,19 +1231,22 @@
   }
 
   function party() {
-    const now = performance.now();
-    if (!introDone || now < partyUntil) return;
+    const now = performance.now(), onBio = bioVisible();
+    if ((onBio && !introDone) || now < partyUntil) return;   // интро не перебиваем
     partyUntil = now + 2800;
 
     // «уменьшить движение» в системе: только слово, которое проявляется на месте и гаснет — без волны, всплесков и прыжков
     if (reducedMotion) { fx.word('VODKA'); return; }
 
-    const r = inner.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    // в портфолио ника на экране нет — тогда волна идёт из центра, а точка не прыгает
+    const r = inner.getBoundingClientRect();
+    const cx = onBio ? r.left + r.width / 2 : innerWidth / 2, cy = onBio ? r.top + r.height / 2 : innerHeight / 2;
     fx.wave(cx, cy);
     fx.splash(cx, cy, 1.5);
     for (let i = 0; i < 12; i++)
       setTimeout(() => fx.splash(Math.random() * innerWidth, Math.random() * innerHeight, .6 + Math.random() * .9), 140 + i * 90 + Math.random() * 60);
     setTimeout(() => fx.word('VODKA'), 420);
+    if (!onBio) return;
     hopDot();
     tween(750, p => { inner.style.transform = `scale(${(1 + .05 * Math.exp(-4 * p) * Math.sin(p * Math.PI * 3)).toFixed(4)})`; }, p => p)
       .then(() => { inner.style.transform = ''; });
@@ -983,13 +1275,294 @@
 
   function showFinal() {
     measure();
-    document.body.classList.add('is-in', 'is-settled');
     finishIntro();
-    $$('.ch').forEach(c => c.classList.add('on'));
-    $$('.link').forEach(a => a.classList.add('on'));
+    $$('.ch', stage).forEach(c => c.classList.add('on'));
+    $$('.links .link').forEach(a => a.classList.add('on'));
+  }
+
+  // Интро играет один раз — когда био впервые оказывается на экране
+  // (если человек пришёл по ссылке сразу в портфолио, оно дождётся перехода в био).
+  let introStarted = false;
+  function startBio(wait) {
+    if (introStarted) return;
+    introStarted = true;
+    if (reducedMotion) showFinal(); else runIntro(wait);
   }
 
   addEventListener('resize', () => { measure(); if (!introDone) render(); });
+
+  /* ===================================================================
+     ПОРТФОЛИО: блоки проявляются по мере прокрутки, между шагами рисуются линии,
+     по линиям бегут точки и оставляют в фоне такой же след из символов, как курсор.
+     Узлы цепочки — элементы с data-node по порядку; линия идёт от «якоря» узла
+     (data-anchor — картинка шага) к якорю следующего.
+  =================================================================== */
+  const work = (() => {
+    const view = $('[data-view="portfolio"]');
+    const NS = 'http://www.w3.org/2000/svg', narrow = matchMedia('(max-width: 860px)');
+    const SPEED = 250, PAUSE = .7;   // скорость точки (px/с) и пауза между пробегами (с)
+    let active = false, started = false, raf = 0, lastT = 0, ioAnchor = null;
+
+    // «закрытые» блоки ждут свою линию: картинки шагов и финал цепочки
+    const gated = el => el.matches('[data-anchor]') || !!el.closest('.flow__end');
+
+    // мини-анимации внутри карточек
+    async function runDemo(el) {
+      if (el.dataset.ran) return;
+      el.dataset.ran = '1';
+      const typed = $$('.type', el);
+      if (el.dataset.demo === 'ai') {
+        await sleep(500);
+        await typeEl(typed[0], { min: 18, max: 40, caret: false });
+        el.classList.add('is-scanning'); await sleep(1250);
+        el.classList.remove('is-scanning'); el.classList.add('is-done');
+        const cells = $$('.ai__rows > *', el);   // dt, dd, dt, dd…
+        for (let i = 0; i + 1 < cells.length; i += 2) {
+          cells[i].classList.add('on'); cells[i + 1].classList.add('on');
+          await typeEl($('.type', cells[i + 1]), { min: 12, max: 26, caret: false });
+          await sleep(160);
+        }
+      } else if (el.dataset.demo === 'sheet') {
+        await sleep(650);
+        $('.row-new', el).classList.add('is-new');
+        for (const t of typed) { await typeEl(t, { min: 14, max: 30, caret: false }); await sleep(90); }
+      }
+    }
+
+    // Одна цепочка (.flow) = свои узлы, свои линии и своя очередь проявления,
+    // поэтому работ (article.case) на странице может быть сколько угодно.
+    function makeFlow(root) {
+      const svg = $('.flow__wires', root), nodes = $$('[data-node]', root);
+      const anchorOf = n => (n.matches('[data-anchor]') ? n : $('[data-anchor]', n) || n);
+      const mk = (tag, cls) => { const e = document.createElementNS(NS, tag); e.setAttribute('class', cls); svg.appendChild(e); return e; };
+      const wires = nodes.slice(1).map((to, i) => ({
+        from: nodes[i], to, len: 0, state: 'idle', t: -i * .35,
+        ghost: mk('path', 'wire wire--ghost'), path: mk('path', 'wire'),
+        p0: mk('circle', 'port'), p1: mk('circle', 'port'), packet: mk('circle', 'packet'),
+      }));
+      const f = { root, svg, nodes, wires, inView: false };
+
+      // Позиция относительно .flow через offset*: в отличие от getBoundingClientRect,
+      // на неё не влияют transform'ы ещё не проявившихся блоков.
+      function box(el) {
+        let x = 0, y = 0;
+        for (let n = el; n && n !== root; n = n.offsetParent) { x += n.offsetLeft; y += n.offsetTop; }
+        return { x, y, w: el.offsetWidth, h: el.offsetHeight };
+      }
+
+      f.layout = () => {
+        if (!root.offsetParent) return;   // страница скрыта
+        const m = narrow.matches;
+        for (const w of wires) {
+          // десктоп: S-образная кривая от низа картинки к верху следующей; телефон: короткая вертикаль вдоль левого края
+          const a = box(anchorOf(w.from)), b = box(m ? w.to : anchorOf(w.to));
+          const x1 = m ? a.x + 20 : a.x + a.w / 2, y1 = a.y + a.h + 10;
+          const x2 = m ? b.x + 20 : b.x + b.w / 2, y2 = b.y - (m ? 16 : 10);
+          const k = Math.max(36, (y2 - y1) * .62);
+          const d = Math.abs(x2 - x1) < 1 ? `M${x1} ${y1}V${y2}` : `M${x1} ${y1}C${x1} ${y1 + k} ${x2} ${y2 - k} ${x2} ${y2}`;
+          w.ghost.setAttribute('d', d); w.path.setAttribute('d', d);
+          for (const [c, x, y] of [[w.p0, x1, y1], [w.p1, x2, y2]]) { c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 4); }
+          w.packet.setAttribute('r', 3.2);
+          w.len = w.path.getTotalLength();
+          // длина могла измениться (ресайз, догрузился шрифт) — штрих должен ей соответствовать и пока линия рисуется
+          if (w.state !== 'live') w.path.style.strokeDasharray = w.len;
+          if (w.state === 'idle') w.path.style.strokeDashoffset = w.len;
+        }
+      };
+
+      // линия «прорисовывается» от начала к концу
+      function draw(w, fast) {
+        return new Promise(resolve => {
+          if (w.state !== 'idle') return resolve();
+          const done = () => {
+            if (w.state === 'live') return;
+            w.state = 'live';
+            w.path.style.transition = 'none'; w.path.style.strokeDasharray = 'none'; w.path.style.strokeDashoffset = 0;
+            w.p1.classList.add('is-live');
+            resolve(); kick();
+          };
+          w.p0.classList.add('is-live');
+          if (reducedMotion || !w.len) return done();
+          w.state = 'drawing';
+          const ms = fast ? 380 : clamp(w.len * 1.5, 650, 1300);
+          w.path.style.transition = `stroke-dashoffset ${ms}ms cubic-bezier(.55, .06, .3, 1)`;
+          w.path.getBoundingClientRect();
+          w.path.style.strokeDashoffset = 0;
+          setTimeout(done, ms + 40);
+        });
+      }
+
+      // Линия дошла до узла → показываем его. Картинка шага при этом ждёт, пока сама окажется на экране
+      // (на телефоне текст шага стоит выше картинки — иначе её анимация отыграла бы под экраном).
+      function showNode(i) {
+        const n = nodes[i], a = anchorOf(n), defer = !!ioAnchor && a !== n;
+        for (const el of [n, ...$$('.reveal', n)]) if (el.classList.contains('reveal') && !(defer && el === a)) el.classList.add('is-in');
+        if (n.parentElement.classList.contains('flow__end')) $$('.reveal', n.parentElement).forEach(el => el.classList.add('is-in'));
+        if (defer) ioAnchor.observe(a); else $$('[data-demo]', n).forEach(runDemo);
+      }
+
+      // узлы открываются строго по очереди: дорисовалась линия → проявился следующий шаг
+      let unlocked = -1, shown = -1, pumping = false;
+      async function pump() {
+        if (pumping) return;
+        pumping = true;
+        try {
+          while (shown < unlocked) {
+            const i = shown + 1;
+            if (i > 0) await draw(wires[i - 1], unlocked - shown > 1);   // отстаём от прокрутки — рисуем быстрее
+            showNode(i); shown = i;
+            await sleep(unlocked > shown ? 120 : 260);
+          }
+        } finally { pumping = false; }
+      }
+      f.unlock = i => { if (i > unlocked) { unlocked = i; pump(); } };
+      f.unlockAll = () => f.unlock(nodes.length - 1);
+
+      f.observe = () => {
+        const ioNode = new IntersectionObserver(es => es.forEach(e => {
+          if (e.isIntersecting) { f.unlock(nodes.indexOf(e.target)); ioNode.unobserve(e.target); }
+        }), { rootMargin: '0px 0px -20% 0px' });
+        nodes.forEach(n => ioNode.observe(n));
+        new IntersectionObserver(es => { f.inView = es[es.length - 1].isIntersecting; kick(); }).observe(root);
+        if ('ResizeObserver' in window) new ResizeObserver(f.layout).observe(root);
+      };
+      return f;
+    }
+
+    const flows = $$('.flow', view).filter(r => $('.flow__wires', r)).map(makeFlow);
+    const layout = () => flows.forEach(f => f.layout());
+
+    // бегущие точки + след из символов (один цикл на все цепочки)
+    function tick(now) {
+      raf = 0;
+      if (!active) return;   // страницу успели скрыть, пока кадр ждал своей очереди
+      const dt = clamp((now - lastT) / 1000, 0, .05); lastT = now;
+      for (const f of flows) {
+        if (!f.inView) continue;
+        const R = f.svg.getBoundingClientRect();
+        for (const w of f.wires) {
+          if (w.state !== 'live' || !w.len) continue;
+          w.t += dt * SPEED / w.len;                       // 0…1 — путь по линии, дальше — пауза
+          if (w.t > 1 + PAUSE * SPEED / w.len) w.t = 0;
+          if (w.t < 0 || w.t > 1) { w.packet.style.opacity = 0; continue; }
+          const pt = w.path.getPointAtLength(w.t * w.len), cy = R.top + pt.y;
+          w.packet.setAttribute('cx', pt.x); w.packet.setAttribute('cy', pt.y);
+          w.packet.style.opacity = Math.min(1, w.t * 8, (1 - w.t) * 8);
+          if (cy > -20 && cy < innerHeight + 20) fx.dab(R.left + pt.x, cy, 15, .7);
+        }
+      }
+      kick();
+    }
+    function kick() {
+      if (raf || !active || reducedMotion || document.hidden) return;
+      if (!flows.some(f => f.inView && f.wires.some(w => w.state === 'live'))) return;
+      if (!lastT || performance.now() - lastT > 200) lastT = performance.now();
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', kick);
+
+    function setup() {
+      if (reducedMotion || !('IntersectionObserver' in window)) {   // без анимаций: всё сразу на месте
+        $$('.reveal', view).forEach(el => el.classList.add('is-in'));
+        $$('.ch', view).forEach(c => c.classList.add('on'));
+        $$('.ai__rows > *', view).forEach(el => el.classList.add('on'));
+        $$('.ai', view).forEach(el => el.classList.add('is-done'));
+        $$('.row-new', view).forEach(el => el.classList.add('is-new'));
+        $$('[data-demo]', view).forEach(el => { el.dataset.ran = '1'; });
+        flows.forEach(f => f.unlockAll());
+        return;
+      }
+      // обычные блоки (заголовки, тексты шагов) проявляются сами
+      const ioReveal = new IntersectionObserver(es => es.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('is-in'); ioReveal.unobserve(e.target); }
+      }), { rootMargin: '0px 0px -10% 0px' });
+      $$('.reveal', view).filter(el => !gated(el)).forEach(el => ioReveal.observe(el));
+
+      // картинка шага: проявляется и запускает свою мини-анимацию, когда линия уже дошла И сама картинка на экране
+      ioAnchor = new IntersectionObserver(es => es.forEach(e => {
+        if (!e.isIntersecting && e.boundingClientRect.bottom > 0) return;   // ещё ниже экрана — ждём; уже пролистали выше — показываем сразу
+        ioAnchor.unobserve(e.target);
+        e.target.classList.add('is-in');
+        $$('[data-demo]', e.target).forEach(runDemo);
+      }), { rootMargin: '0px 0px -12% 0px' });
+
+      flows.forEach(f => f.observe());
+
+      // конец страницы может не дотянуться до порога наблюдателя — тогда открываем всё оставшееся
+      addEventListener('scroll', () => {
+        if (!active || scrollY + innerHeight < document.documentElement.scrollHeight - 6) return;
+        $$('.reveal', view).filter(el => !gated(el)).forEach(el => el.classList.add('is-in'));
+        flows.forEach(f => f.unlockAll());
+      }, { passive: true });
+
+      // с клавиатуры можно попасть на ссылку внутри ещё не проявленного блока — показываем его сразу
+      view.addEventListener('focusin', e => {
+        const r = e.target.closest('.reveal:not(.is-in)');
+        if (!r) return;
+        r.classList.add('is-in');
+        $$('[data-demo]', r).forEach(runDemo);
+        const fl = flows.find(f => f.root.contains(r));
+        if (fl && gated(r)) fl.unlockAll();
+      });
+
+      const title = $('[data-type-on-show]', view);
+      if (title) sleep(280).then(() => typeEl(title, { min: 34, max: 74, caret: false }));
+    }
+
+    addEventListener('resize', layout);
+
+    return {
+      layout,
+      start() { active = true; layout(); if (!started) { started = true; setup(); } kick(); },
+      stop() { active = false; if (raf) { cancelAnimationFrame(raf); raf = 0; } },
+    };
+  })();
+
+  /* ===================================================================
+     вкладки «био | портфолио»: адрес …/#portfolio открывает сразу портфолио
+  =================================================================== */
+  const views = { bio: $('[data-view="bio"]'), portfolio: $('[data-view="portfolio"]') };
+  const tabsBox = $('.tabs'), tabs = $$('.tab', tabsBox), thumb = $('.tabs__thumb'), topBar = $('.bar--top');
+  const viewFromHash = () => (location.hash === '#portfolio' ? 'portfolio' : 'bio');
+  let current = null, navRun = 0, thumbReady = false;
+
+  function moveThumb() {
+    const a = tabs.find(t => t.dataset.to === current);
+    if (!a) return;
+    if (!thumbReady) thumb.style.transition = 'none';   // первый раз ставим без переезда
+    tabsBox.style.setProperty('--x', a.offsetLeft + 'px');
+    tabsBox.style.setProperty('--w', a.offsetWidth + 'px');
+    if (!thumbReady) { thumb.getBoundingClientRect(); thumb.style.transition = ''; thumbReady = true; }
+  }
+
+  async function showView(name, { instant = false } = {}) {
+    if (name === current) return;
+    const run = ++navRun, from = current && views[current], to = views[name], animate = !instant && !reducedMotion;
+    current = name;
+    tabs.forEach(t => (t.dataset.to === name ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
+    moveThumb();
+    document.title = name === 'portfolio' ? '_ilovevodka — портфолио' : '_ilovevodka';
+
+    if (from && animate) { from.classList.add('is-leaving'); await sleep(240); }
+    if (run !== navRun) return;   // пока ждали, успели переключиться ещё раз — финальное состояние выставит тот вызов
+    for (const [k, v] of Object.entries(views)) { v.hidden = k !== name; v.classList.remove('is-leaving'); }
+    if (animate) { to.classList.add('is-entering'); to.getBoundingClientRect(); to.classList.remove('is-entering'); }
+    if (!instant) scrollTo(0, 0);
+
+    if (name === 'bio') {
+      work.stop();
+      if (!introStarted) startBio(instant ? 1300 : 500);
+      else { measure(); if (!introDone) render(); if (lastTyped) placeCaret(lastTyped); }
+    } else {
+      work.start();
+    }
+  }
+  addEventListener('hashchange', () => showView(viewFromHash()));
+  addEventListener('resize', moveThumb);
+
+  const onScroll = () => topBar.classList.toggle('is-scrolled', scrollY > 8);
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 
   const fontsReady = Promise.race([
     Promise.all([
@@ -1001,11 +1574,15 @@
     sleep(2500),
   ]);
   // если шрифт доехал позже таймаута — перемеряем
-  document.fonts.addEventListener?.('loadingdone', () => { fx.rebuild(); measure(); if (!introDone) render(); });
+  document.fonts.addEventListener?.('loadingdone', () => { fx.rebuild(); measure(); if (!introDone) render(); moveThumb(); work.layout(); });
 
   fontsReady.then(() => {
     fx.rebuild();
-    if (reducedMotion) showFinal(); else runIntro();
+    // страница выходит из блюра; какая вкладка открыта — решает адрес (#portfolio или нет)
+    document.body.classList.add('is-in');
+    if (reducedMotion) document.body.classList.add('is-settled');
+    else setTimeout(() => document.body.classList.add('is-settled'), 2100);
+    showView(viewFromHash(), { instant: true });
   });
 })();
 </script>
