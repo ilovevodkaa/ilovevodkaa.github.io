@@ -95,6 +95,7 @@
     transform: translateX(var(--x, 0)); transition: transform .5s var(--ease), width .5s var(--ease);
   }
   .tab {
+    -webkit-appearance: none; appearance: none; margin: 0; border: 0; background: none; cursor: pointer;
     position: relative; z-index: 1; padding: .66em 1.05em; border-radius: 999px;
     font: 500 12px/1 var(--font-mono); letter-spacing: .01em; color: var(--muted); text-decoration: none;
     transition: color .3s ease;
@@ -414,8 +415,9 @@
       <span class="status" data-state="none" role="status"><i class="status__dot" aria-hidden="true"></i><span class="status__text" aria-hidden="true">( bio )</span><span class="status__extra" aria-hidden="true"></span><span class="sr"></span></span>
       <nav class="tabs fixed" aria-label="Разделы">
         <span class="tabs__thumb" aria-hidden="true"></span>
-        <a class="tab" href="#bio" data-to="bio" aria-current="page">био</a>
-        <a class="tab" href="#portfolio" data-to="portfolio">портфолио</a>
+        <!-- кнопки, а не ссылки-якоря: во встроенных предпросмотрах и «песочницах» клик по ссылке перехватывается как уход со страницы -->
+        <button class="tab" type="button" data-to="bio" aria-current="page">био</button>
+        <button class="tab" type="button" data-to="portfolio">портфолио</button>
       </nav>
     </header>
 
@@ -1557,7 +1559,16 @@
       work.start();
     }
   }
-  addEventListener('hashchange', () => showView(viewFromHash()));
+  // Клик по вкладке: адрес меняем сами через history (чтобы работали «назад» и ссылка …/#portfolio).
+  // В песочницах pushState бывает запрещён — тогда просто переключаем страницу без смены адреса.
+  function go(name) {
+    if (name === current) return;
+    try { history.pushState(null, '', name === 'portfolio' ? '#portfolio' : location.pathname + location.search); } catch (e) {}
+    showView(name);
+  }
+  tabs.forEach(t => t.addEventListener('click', () => go(t.dataset.to)));
+  addEventListener('popstate', () => showView(viewFromHash()));     // «назад» / «вперёд»
+  addEventListener('hashchange', () => showView(viewFromHash()));   // адрес с #portfolio ввели руками
   addEventListener('resize', moveThumb);
 
   const onScroll = () => topBar.classList.toggle('is-scrolled', scrollY > 8);
