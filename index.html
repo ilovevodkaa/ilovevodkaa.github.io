@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fff'/%3E%3Crect x='14' y='42' width='36' height='7' fill='%230b0b0c'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Anton&family=Archivo+Black&family=Caveat:wght@700&family=Comic+Neue:wght@700&family=Cormorant+Garamond:wght@600&family=Pacifico&family=Playfair+Display:wght@700&family=Syne:wght@800&family=UnifrakturMaguntia&family=VT323&display=swap" rel="stylesheet">
 
 <style>
   :root {
@@ -163,7 +163,9 @@
     padding-left: calc((var(--L) + var(--gap)) * 1em);
     will-change: transform;
   }
-  .word { display: inline-block; padding-block: .2em; margin-block: -.2em; }
+  /* line-height: 0 — пока буквы перебирают шрифты, строка не растёт и базовая линия стоит на месте
+     (её задаёт «распорка» самого .nick, т.е. основной шрифт). Padding — запас под маску проявления. */
+  .word { display: inline-block; line-height: 0; padding-block: .9em; margin-block: -.9em; }
 
   /* каретка «I», которая в конце падает и становится «_» */
   .caret {
@@ -184,12 +186,12 @@
   .i { position: relative; display: inline-block; }
   .i-stem, .i-dot { display: block; }
   .i-stem {
-    clip-path: inset(calc(var(--cut) * 1em) -1em -1em -1em);
+    clip-path: inset(calc(var(--cut) * 1em) -1em -2em -1em);
     transform-origin: calc(var(--dotx) * 1em) calc(var(--basei) * 1em);
   }
   .i-dot {
     position: absolute; left: 0; top: 0; opacity: 0;
-    clip-path: inset(-3em -1em calc((1 - var(--cut)) * 1em) -1em);
+    clip-path: inset(-3em -1em calc(-1 * var(--cut) * 1em) -1em);   /* низ точки = верх ножки: обе на --cut от верха (высота блока 0) */
     transform-origin: calc(var(--dotx) * 1em) calc(var(--cut) * 1em);
     will-change: transform;
   }
@@ -1085,10 +1087,10 @@
   // попадает куда надо с любым шрифтом (в т.ч. с запасным, если Google Fonts не загрузился).
   function scanI() {
     try {
-      const cs = getComputedStyle(nick), Z = 160, c = document.createElement('canvas');
+      const cs = getComputedStyle(stem), Z = 160, c = document.createElement('canvas');   // шрифт самих букв (во время перебора — чужой)
       c.width = Z; c.height = Math.round(Z * 1.6);
       const g = c.getContext('2d', { willReadFrequently: true }), by = Math.round(Z * 1.2), x0 = Math.round(Z * .3);
-      g.font = `${cs.fontWeight} ${Z}px ${cs.fontFamily}`; g.textBaseline = 'alphabetic'; g.fillText('i', x0, by);
+      g.font = `${cs.fontStyle} ${cs.fontWeight} ${Z}px ${cs.fontFamily}`; g.textBaseline = 'alphabetic'; g.fillText('i', x0, by);
       const px = g.getImageData(0, 0, c.width, c.height).data;
       const ink = (x, y) => px[(y * c.width + x) * 4 + 3] > 60;
       const rowInk = y => { for (let x = 0; x < c.width; x++) if (ink(x, y)) return true; return false; };
@@ -1110,16 +1112,17 @@
 
   function measure() {
     if (!bioVisible()) return;   // у скрытого блока все размеры нулевые — перемеряем, когда био снова покажут
-    const fs = parseFloat(getComputedStyle(nick).fontSize);
+    const fs = parseFloat(getComputedStyle(nick).fontSize);     // em каретки
+    const wfs = parseFloat(getComputedStyle(stem).fontSize);    // em букв (у чужих шрифтов свой масштаб)
     const probe = document.createElement('span');
     probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
     stem.appendChild(probe);
-    const baseI = probe.offsetTop / fs;                       // базовая линия внутри .i
+    const baseI = probe.offsetTop / wfs;                      // базовая линия внутри .i (в em букв)
     const baseInner = (iEl.offsetTop + probe.offsetTop) / fs; // она же внутри .nick__inner
     probe.remove();
 
     const scan = scanI();
-    M.cut = scan ? baseI - scan.cutAbove : .26;
+    M.cut = baseI - (scan ? scan.cutAbove : .6);   // .6 — просвет у Inter Tight, если скан не удался
     M.dotx = scan ? scan.dotx : .11;
     nick.style.setProperty('--base', baseInner.toFixed(4));
     nick.style.setProperty('--basei', baseI.toFixed(4));
@@ -1190,6 +1193,62 @@
     inner.style.willChange = 'auto';
   }
 
+  /* ===================================================================
+     перебор шрифтов: пока каретка печатает слово и возвращается, буквы
+     каждые несколько десятков мс меняют шрифт; в момент падения каретки
+     шрифт замирает на основном
+  =================================================================== */
+  const FONTS = [
+    // семейство, начертание, межбуквенный интервал, масштаб (широкие шрифты чуть меньше, узкие чуть больше)
+    // масштаб подобран так, чтобы слово в любом шрифте было примерно той же ширины, что в основном (≈4.4em)
+    ['Playfair Display', 700, '-.02em', 1],
+    ['Pacifico', 400, '0', 1],
+    ['VT323', 400, '0', 1.1],
+    ['UnifrakturMaguntia', 400, '0', 1.1],
+    ['Comic Neue', 700, '-.02em', 1.05],
+    ['Anton', 400, '.01em', 1.02],
+    ['Caveat', 700, '0', 1.22],
+    ['Cormorant Garamond', 600, '-.02em', 1.06],
+    ['Syne', 800, '-.03em', .56],
+    ['Archivo Black', 400, '-.03em', .84],
+    ['JetBrains Mono', 500, '-.06em', .86],
+  ];
+  const fontPool = [];   // те из FONTS, что реально загрузились
+  function loadScrambleFonts() {
+    for (const f of FONTS) document.fonts.load(`${f[1]} 100px "${f[0]}"`).then(faces => { if (faces.length && !fontPool.includes(f)) fontPool.push(f); }).catch(() => {});
+  }
+  function setWordFont(f) {
+    word.style.fontFamily = f ? `"${f[0]}"` : '';
+    word.style.fontWeight = f ? f[1] : '';
+    word.style.letterSpacing = f ? f[2] : '';
+    word.style.fontSize = f ? f[3] + 'em' : '';
+  }
+  let scrambling = false;
+  async function scrambleFonts(total) {
+    scrambling = true;
+    const t0 = performance.now();
+    let last = null, prev = null;
+    while (scrambling) {
+      const pool = fontPool.filter(f => f !== last && f !== prev);
+      if (pool.length) {
+        const f = pool[(Math.random() * pool.length) | 0];
+        prev = last; last = f;
+        setWordFont(f); measure(); render();   // ширина слова меняется — каретка и маска пересчитываются под неё
+      }
+      const p = clamp((performance.now() - t0) / total, 0, 1);
+      await sleep(lerp(65, 170, p * p));      // к концу перебор чуть замедляется
+    }
+  }
+  function lockFont() {
+    scrambling = false;
+    setWordFont(null); measure(); render();
+    // основной шрифт «наводится на резкость»
+    word.style.transition = 'none'; word.style.filter = 'blur(5px)';
+    word.getBoundingClientRect();
+    word.style.transition = 'filter .35s ease'; word.style.filter = '';
+    setTimeout(() => { word.style.transition = ''; }, 400);
+  }
+
   // wait — сколько каретка мигает до старта: при загрузке дольше (пока страница выходит из блюра)
   async function runIntro(wait = 1300) {
     measure(); render();
@@ -1198,7 +1257,8 @@
     await sleep(wait);
     caret.classList.remove('blink');
 
-    // каретка едет вправо и «проявляет» слово
+    // каретка едет вправо и «проявляет» слово; буквы всё это время перебирают шрифты
+    scrambleFonts(1550 + 420 + 1000 + 150);
     await tween(1550, p => { S.caretP = S.revealP = p; render(); });
     S.masked = false; word.style.webkitMaskImage = word.style.maskImage = 'none';
     await sleep(420);
@@ -1207,7 +1267,8 @@
     await tween(1000, p => { S.backP = p; S.caretP = 1 - p; render(); });
     await sleep(150);
 
-    // падает влево → «_», а сверху на i прилетает точка
+    // шрифт замирает, каретка падает влево → «_», а сверху на i прилетает точка
+    lockFont();
     const falling = fallCaret();
     await sleep(340);
     await Promise.all([falling, dropDot()]);
@@ -1591,6 +1652,7 @@
 
   fontsReady.then(() => {
     fx.rebuild();
+    loadScrambleFonts();
     // страница выходит из блюра; какая вкладка открыта — решает адрес (#portfolio или нет)
     document.body.classList.add('is-in');
     if (reducedMotion) document.body.classList.add('is-settled');
