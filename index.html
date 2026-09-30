@@ -4,7 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>_ilovevodka</title>
-<meta name="description" content="_ilovevodka — bio">
+<meta name="description" content="_ilovevodka — делаю сайты и автоматизации на ИИ. Портфолио и контакты.">
+<link rel="canonical" href="https://ilovevodkaa.github.io/">
+<!-- карточка-превью, когда ссылку кидают в Telegram / Discord -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="_ilovevodka">
+<meta property="og:title" content="_ilovevodka">
+<meta property="og:description" content="Сайты и автоматизации на ИИ. Портфолио и контакты.">
+<meta property="og:url" content="https://ilovevodkaa.github.io/">
+<meta property="og:image" content="https://ilovevodkaa.github.io/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ilovevodkaa.github.io/assets/og.png">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fff'/%3E%3Crect x='14' y='42' width='36' height='7' fill='%230b0b0c'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -134,14 +147,15 @@
   .status__extra:empty { display: none; }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(35, 165, 90, .45); } 70%, 100% { box-shadow: 0 0 0 7px rgba(35, 165, 90, 0); } }
 
-  /* подвал: (пусто) | моё время по центру | координаты справа */
+  /* подвал: с какого дня живёт сайт | моё время по центру | счётчик символов справа */
   .bar--bottom { display: grid; grid-template-columns: 1fr auto 1fr; }
+  .since { grid-column: 1; justify-self: start; font-variant-numeric: tabular-nums; }
   .clock { grid-column: 2; font-variant-numeric: tabular-nums; }
   .clock__sep { font-style: normal; animation: tick 2s steps(1) infinite; }
   @keyframes tick { 50% { opacity: .25; } }
-  .coords { grid-column: 3; justify-self: end; font-variant-numeric: tabular-nums; }
+  .glyphs { grid-column: 3; justify-self: end; font-variant-numeric: tabular-nums; }
   @media (hover: none), (max-width: 640px) {
-    .coords { display: none; }   /* на телефоне остаётся только время — по центру */
+    .since, .glyphs { display: none; }   /* на телефоне остаётся только время — по центру */
   }
 
   .stage {
@@ -252,6 +266,58 @@
     transition: opacity .25s ease, filter .3s ease, transform .3s var(--ease);
   }
   .link--copy.on:hover .tip, .link--copy.on:focus-visible .tip, .link--copy.copied .tip { opacity: 1; filter: none; transform: translate(-50%, 0); }
+
+  /* «сейчас»: что я слушаю / во что играю — живые данные из Discord. Карточка висит под ссылками
+     и не участвует в вёрстке (absolute), поэтому при её появлении ник и текст не прыгают. */
+  .now-slot { position: relative; width: 100%; height: 0; }
+  .now {
+    position: absolute; left: 50%; top: 22px; z-index: 1;
+    display: flex; align-items: center; gap: 13px;
+    width: max-content; min-width: min(100%, 250px); max-width: min(100%, 360px); padding: 9px 16px 9px 9px;
+    border: 1px solid var(--line); border-radius: 17px; background: rgba(255, 255, 255, .62);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    text-align: left;
+    opacity: 0; filter: blur(6px); transform: translate(-50%, 10px);
+    transition: opacity .6s var(--ease), transform .7s var(--ease), filter .7s var(--ease), border-color .35s ease, box-shadow .35s ease;
+  }
+  .now[hidden] { display: none; }
+  .now.on { opacity: 1; filter: none; transform: translate(-50%, 0); }
+  .now.is-link:hover { border-color: var(--ink); box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .4); }
+  .now__art {
+    flex: none; position: relative; display: grid; place-items: center; width: 50px; height: 50px;
+    border-radius: 10px; overflow: hidden; background: var(--ink); color: #fff; font: 600 21px/1 var(--font-display);
+  }
+  .now__art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .now__art img[hidden] { display: none; }
+  .now__body { flex: 1; min-width: 0; display: grid; gap: 3px; }
+  .now__label { display: flex; align-items: center; gap: .65em; font: 400 11px/1.3 var(--font-mono); letter-spacing: .01em; color: var(--muted); white-space: nowrap; }
+  .now__title, .now__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .now__title { font: 500 15px/1.3 var(--font-display); letter-spacing: -.01em; color: var(--ink); text-decoration: none; }
+  .now__title[href]::after { content: ""; position: absolute; inset: 0; border-radius: 17px; }   /* кликается вся карточка */
+  .now__title:focus-visible { outline: none; }
+  .now__title[href]:focus-visible::after { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .now__sub { font: 400 12.5px/1.3 var(--font-display); color: var(--text); }
+  .now__sub:empty, .now__prog[hidden] { display: none; }
+  .now__prog { display: flex; align-items: center; gap: 8px; margin-top: 3px; font: 400 10.5px/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .now__bar { flex: 1; height: 2px; border-radius: 2px; background: var(--line); overflow: hidden; }
+  .now__bar i { display: block; width: 100%; height: 100%; background: var(--ink); transform-origin: 0 50%; transform: scaleX(var(--p, 0)); transition: transform 1s linear; }
+  .now.no-anim .now__bar i { transition: none; }
+  /* «эквалайзер» рядом с подписью, пока играет музыка */
+  .now__eq { display: none; align-items: flex-end; gap: 2px; height: 9px; }
+  .now[data-kind="spotify"] .now__eq { display: inline-flex; }
+  .now__eq i { width: 2px; height: 100%; background: var(--ink); transform-origin: 50% 100%; animation: eq 1s ease-in-out infinite; }
+  .now__eq i:nth-child(2) { animation-duration: .8s; animation-delay: -.3s; }
+  .now__eq i:nth-child(3) { animation-duration: 1.2s; animation-delay: -.6s; }
+  @keyframes eq { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
+  .now:not(.on) { pointer-events: none; }   /* пока карточка гаснет или ещё не проявилась, по ней нельзя кликнуть */
+  /* На невысоких экранах под ссылками нет свободного места. Там слот получает высоту карточки (скрипт пишет её в --now-h)
+     и плавно раздвигается, а ник и отступы немного сжимаются, чтобы страница не начала прокручиваться. */
+  @media (max-height: 800px) {
+    .stage { padding-block: 2vh; }
+    .nick { font-size: clamp(44px, min(13vw, 22vh), 176px); }
+    .now-slot { height: var(--now-h, 0px); transition: height .6s var(--ease); }
+    .now { top: 12px; }
+  }
 
   /* =====================================================================
      ПОРТФОЛИО
@@ -379,8 +445,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .bg i, .caret.blink, .tcaret.on.idle, .status__dot, .clock__sep, .ai__scan::after { animation: none !important; }
-    .bg, .page, .link, .tip, .type .ch, .view, .reveal, .tabs__thumb, .port, .shot, .tg__body img, .ai__rows dt, .ai__rows dd { transition: none; }
+    .bg i, .caret.blink, .tcaret.on.idle, .status__dot, .clock__sep, .ai__scan::after, .now__eq i { animation: none !important; }
+    .bg, .page, .link, .tip, .type .ch, .view, .reveal, .tabs__thumb, .port, .shot, .tg__body img, .ai__rows dt, .ai__rows dd, .now, .now-slot, .now__bar i { transition: none; }
   }
 
   /* печать / «сохранить как PDF»: всё, что проявляется при прокрутке, должно быть видно сразу */
@@ -431,7 +497,7 @@
       <!-- ↓↓↓ ТЕКСТЫ: меняй как хочешь ↓↓↓ -->
       <p class="tagline type">пишу код. играю в игры. не сплю по ночам.</p>
 
-      <p class="about type">Привет! Это моя страничка. Скоро тут появится пара слов обо мне, а пока — ссылки, где меня можно найти.</p>
+      <p class="about type">Делаю сайты и автоматизации на ИИ — чтобы рутину делала машина, а не человек. Работы лежат во вкладке «портфолио».</p>
 
       <!-- ↓↓↓ ССЫЛКИ ↓↓↓
            У Discord нет ссылки на профиль по нику, поэтому его кнопка копирует ник из data-copy. -->
@@ -441,6 +507,18 @@
         <a class="link" href="https://github.com/ilovevodkaa" target="_blank" rel="me noopener"><span class="type">github</span><span class="arr" aria-hidden="true">↗</span></a>
         <a class="link" href="https://steamcommunity.com/id/arthasfrostmorn/" target="_blank" rel="me noopener"><span class="type">steam</span><span class="arr" aria-hidden="true">↗</span></a>
       </nav>
+
+      <!-- «сейчас слушаю / играю»: появляется сама, когда Discord отдаёт активность (нужен discordId в настройках).
+           Все тексты и картинки сюда подставляет скрипт. -->
+      <div class="now-slot"><div class="now" hidden>
+        <span class="now__art" aria-hidden="true"><span class="now__mono"></span><img alt="" hidden referrerpolicy="no-referrer" decoding="async"></span>
+        <span class="now__body">
+          <span class="now__label"><span class="now__eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="now__what"></span></span>
+          <a class="now__title" target="_blank" rel="noopener"></a>
+          <span class="now__sub"></span>
+          <span class="now__prog" hidden><span class="now__t0"></span><span class="now__bar" aria-hidden="true"><i></i></span><span class="now__t1"></span></span>
+        </span>
+      </div></div>
 
       <span class="tcaret" aria-hidden="true"></span>
     </section>
@@ -551,8 +629,9 @@
     </main>
 
     <footer class="bar bar--bottom">
+      <span class="since">сайт живёт с 21.09.2026</span>
       <span class="clock" hidden>у меня сейчас <span class="clock__t"></span></span>
-      <span class="coords">x 0000 · y 0000</span>
+      <span class="glyphs" aria-hidden="true">символов · 000000</span>
     </footer>
   </div>
   </div>
@@ -568,7 +647,7 @@
     // Твой Discord ID — цифры ОБЯЗАТЕЛЬНО В КАВЫЧКАХ: '123456789012345678'
     // (Настройки → Расширенные → Режим разработчика, потом ПКМ по себе → «Копировать ID пользователя»).
     // Чтобы статус заработал, зайди на сервер Lanyard: https://discord.gg/lanyard. Пусто — статус выключен.
-    discordId: '',
+    discordId: '848822433398259723',
     // Твой часовой пояс для строки «у меня сейчас 03:12». Пусто — строка скрыта.
     timeZone: 'Europe/Moscow',
   };
@@ -586,15 +665,35 @@
     outQuad: p => 1 - (1 - p) * (1 - p),
     inQuad: p => p * p,
   };
+  // Интро можно промотать кликом или клавишей: все его паузы и анимации тогда доигрываются мгновенно.
+  let introLive = false;      // идёт сама анимация ника (до момента, когда «_ilovevodka» встал на место)
+  let introPlaying = false;   // интро или печать текста под ником ещё идут — промотка имеет смысл
+  let introSkipped = false;
+  const introSleepers = new Set();
+  const isleep = ms => introSkipped ? Promise.resolve() : new Promise(res => {
+    const done = () => { clearTimeout(timer); introSleepers.delete(done); res(); };
+    const timer = setTimeout(done, ms);
+    introSleepers.add(done);
+  });
+  function skipIntro() {
+    if (!introPlaying || introSkipped) return;
+    introSkipped = true;
+    for (const done of [...introSleepers]) done();
+  }
+  let bioReadyResolve;
+  const bioReady = new Promise(res => { bioReadyResolve = res; });   // ник на месте, текст и ссылки под ним показаны
+
   // Время копится по кадрам, а не по часам: если вкладка была в фоне и кадры не шли,
   // анимация продолжится с того же места, а не «перемотается» в конец.
   function tween(ms, fn, easing = ease.inOut) {
+    // интро уже промотали — конечное положение ставим сразу, не тратя по кадру на каждый шаг (иначе ник «дёргается»)
+    if (introLive && introSkipped) { fn(easing(1)); return Promise.resolve(); }
     return new Promise(resolve => {
       let last = 0, elapsed = 0;
       const step = now => {
         if (last) elapsed += Math.min(now - last, 50);
         last = now;
-        const p = clamp(elapsed / ms, 0, 1);
+        const p = introLive && introSkipped ? 1 : clamp(elapsed / ms, 0, 1);   // промотали посреди движения — оно тоже сразу встаёт в конец
         fn(easing(p));
         p < 1 ? requestAnimationFrame(step) : resolve();
       };
@@ -618,6 +717,7 @@
     let dpr = 1, cw = CELL_W, ch = CELL_H, cols = 0, rows = 0;
     let E, thr, seed, atlas;
     let rings = [], drops = [], holds = [], running = false, lastT = 0, lastPt = null;
+    let lit = 0;   // сколько клеток зажглось за визит — это число показывает счётчик в подвале
 
     function buildAtlas() {
       atlas = document.createElement('canvas');
@@ -654,7 +754,7 @@
           const f = 1 - d, v = f * f * (3 - 2 * f), i = r * cols + c;
           if (v < thr[i] * .8) continue;
           const val = power * Math.min(1, v * 1.25 + .1) * (.55 + .45 * ((seed[i] & 255) / 255));
-          if (val > E[i]) E[i] = val;
+          if (val > E[i]) { if (!E[i]) lit++; E[i] = val; }
         }
       }
     }
@@ -681,7 +781,7 @@
           const lobe = lerp(g.lobes[k % n], g.lobes[(k + 1) % n], fr * fr * (3 - 2 * fr));
           const val = band * lobe * power, i = r * cols + c;
           if (val < thr[i] * .55) continue;
-          if (val > E[i]) E[i] = Math.min(1, val * 1.1);
+          if (val > E[i]) { if (!E[i]) lit++; E[i] = Math.min(1, val * 1.1); }
         }
       }
     }
@@ -704,7 +804,7 @@
       for (const h of holds) {
         h.t += dt;
         const pw = Math.min(1, h.t / .3);
-        for (const i of h.cells) if (Math.random() < .45) { const v = pw * (.45 + Math.random() * .55); if (v > E[i]) E[i] = v; }
+        for (const i of h.cells) if (Math.random() < .45) { const v = pw * (.45 + Math.random() * .55); if (v > E[i]) { if (!E[i]) lit++; E[i] = v; } }
       }
       holds = holds.filter(h => h.t < h.dur);
 
@@ -807,15 +907,23 @@
     // точечный «мазок» в CSS-пикселях — им оставляют след точки, бегущие по линиям в портфолио
     function dab(x, y, r = 14, power = .6) { stamp(x * dpr, y * dpr, r * dpr, power); wake(); }
 
-    return { splash, wave, word, dab, rebuild: buildAtlas };
+    return { splash, wave, word, dab, rebuild: buildAtlas, lit: () => lit };
   })();
 
   /* ===================================================================
-     мелочи: координаты курсора в подвале
+     мелочи: счётчик в подвале — сколько символов фона зажглось за этот визит
+     (от курсора, кликов, точек на линиях портфолио и пасхалки)
   =================================================================== */
-  const coords = $('.coords');
-  const pad = n => String(Math.max(0, Math.round(n))).padStart(4, '0');
-  addEventListener('pointermove', e => { coords.textContent = `x ${pad(e.clientX)} · y ${pad(e.clientY)}`; }, { passive: true });
+  (() => {
+    const el = $('.glyphs');
+    let shown = 0;
+    setInterval(() => {
+      const n = fx.lit();
+      if (n === shown) return;
+      shown = n;
+      el.textContent = 'символов · ' + String(n).padStart(6, '0');
+    }, 120);
+  })();
 
   /* ===================================================================
      «у меня сейчас 03:12» — время в поясе владельца, а не посетителя
@@ -899,12 +1007,138 @@
     }
     const showElapsed = () => { extraEl.textContent = since ? fmtElapsed(Date.now() - since) : ''; };
 
+    /* --- карточка «сейчас» под ссылками: обложка, название, прогресс трека или время в игре --- */
+    const nowEl = $('.now'), nowImg = $('img', nowEl), nowMono = $('.now__mono', nowEl), nowWhat = $('.now__what', nowEl),
+          nowTitle = $('.now__title', nowEl), nowSub = $('.now__sub', nowEl), nowProg = $('.now__prog', nowEl),
+          nowT0 = $('.now__t0', nowEl), nowT1 = $('.now__t1', nowEl), nowBar = $('.now__bar i', nowEl);
+    const str = v => (typeof v === 'string' ? v.trim() : '');
+    const num = v => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : 0; };
+    const SNOWFLAKE = /^\d{15,22}$/;
+    nowImg.addEventListener('load', () => { nowImg.hidden = false; });
+    nowImg.addEventListener('error', () => { nowImg.hidden = true; });   // нет картинки — остаётся плитка с первой буквой
+
+    // Адрес картинки собираем сами: хост всегда известный (Discord или Spotify), из чужих данных берём только хвост пути.
+    function artOf(a) {
+      const img = str(a.assets && a.assets.large_image);
+      if (img.startsWith('mp:external/')) return 'https://media.discordapp.net/external/' + img.slice(12);
+      if (img.startsWith('spotify:')) return 'https://i.scdn.co/image/' + encodeURIComponent(img.slice(8));
+      if (SNOWFLAKE.test(img) && SNOWFLAKE.test(str(a.application_id))) return `https://cdn.discordapp.com/app-assets/${a.application_id}/${img}.png?size=160`;
+      return '';
+    }
+
+    // Тот же порядок важности, что и в строке статуса: игра → стрим → Spotify → другая музыка → видео.
+    function nowOf(p) {
+      if (!p || !STATES.includes(p.discord_status) || p.discord_status === 'offline') return null;
+      const acts = Array.isArray(p.activities) ? p.activities.filter(a => a && typeof a === 'object') : [];
+      const byType = t => acts.find(a => a.type === t && str(a.name));
+      const game = byType(0), stream = byType(1), listen = byType(2), watch = byType(3);
+      const sp = p.listening_to_spotify && p.spotify && typeof p.spotify === 'object' && str(p.spotify.song) ? p.spotify : null;
+      if (game) return {
+        kind: 'game', what: CODE_APPS.test(game.name) ? 'сейчас пишу код' : 'сейчас играю', title: str(game.name),
+        sub: [str(game.details), str(game.state)].filter(Boolean).join(' · '), art: artOf(game), start: num(game.timestamps && game.timestamps.start),
+      };
+      if (stream) return { kind: 'stream', what: 'сейчас стримлю', title: str(stream.details) || str(stream.name), sub: str(stream.state), art: artOf(stream), start: 0 };
+      if (sp) {
+        const ts = sp.timestamps && typeof sp.timestamps === 'object' ? sp.timestamps : {}, cover = str(sp.album_art_url), id = str(sp.track_id);
+        return {
+          kind: 'spotify', what: 'сейчас слушаю', title: str(sp.song), sub: str(sp.artist).replace(/;\s*/g, ', '),
+          art: /^https:\/\/i\.scdn\.co\/image\/[A-Za-z0-9]+$/.test(cover) ? cover : '',
+          href: /^[A-Za-z0-9]{22}$/.test(id) ? 'https://open.spotify.com/track/' + id : '',
+          start: num(ts.start), end: num(ts.end),
+        };
+      }
+      if (listen) return { kind: 'listen', what: 'сейчас слушаю', title: str(listen.details) || str(listen.name), sub: str(listen.state), art: artOf(listen), start: 0 };
+      if (watch) return { kind: 'watch', what: 'сейчас смотрю', title: str(watch.details) || str(watch.name), sub: str(watch.state), art: artOf(watch), start: 0 };
+      return null;
+    }
+
+    let nowCur = null, nowKey = '', nowArt = '', nowShown = false, nowTimer = 0, nowHideTimer = 0, bioIsReady = false;
+    const mmss = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+    const hasBar = n => n.kind === 'spotify' && n.end > n.start;
+
+    // то, что меняется со временем: полоска трека или «· 42 мин» в игре
+    function nowTick() {
+      const n = nowCur;
+      if (!n) return;
+      if (hasBar(n)) {
+        const len = n.end - n.start, pos = clamp(Date.now() - n.start, 0, len);
+        nowBar.style.setProperty('--p', (pos / len).toFixed(4));
+        nowT0.textContent = mmss(pos); nowT1.textContent = mmss(len);
+      } else {
+        const e = n.start ? fmtElapsed(Date.now() - n.start) : '';
+        nowWhat.textContent = n.what + (e ? ' ' + e : '');
+      }
+    }
+
+    function nowPaint(n) {
+      const key = [n.kind, n.title, n.sub, n.art, n.href || '', n.start, n.end || 0].join('\n');
+      if (key === nowKey) return nowTick();
+      nowKey = key;
+      nowEl.dataset.kind = n.kind;
+      nowWhat.textContent = n.what;
+      nowTitle.textContent = cut(n.title, 80);
+      nowSub.textContent = cut(n.sub, 90);
+      if (n.href) nowTitle.href = n.href; else nowTitle.removeAttribute('href');
+      nowEl.classList.toggle('is-link', !!n.href);
+      nowMono.textContent = ([...n.title][0] || '').toUpperCase();
+      if (n.art !== nowArt) {   // обложку трогаем, только когда она сменилась: у соседних треков альбома она одна и та же
+        nowArt = n.art;
+        nowImg.hidden = true;   // покажется по событию load; пока грузится (или не загрузилась) — плитка с первой буквой
+        if (n.art) nowImg.src = n.art; else nowImg.removeAttribute('src');
+      }
+      nowProg.hidden = !hasBar(n);
+      nowEl.classList.add('no-anim');      // новая дорожка: полоска сразу встаёт на своё место, без «проезда» от старой
+      nowTick();
+      nowBar.getBoundingClientRect();
+      nowEl.classList.remove('no-anim');
+    }
+
+    // На невысоких экранах слот карточки занимает место в вёрстке (см. CSS): пишем ему высоту, слот плавно
+    // раздвигается, текст над ним переезжает — и каретка печати всё это время едет вместе с текстом.
+    const nowSlot = nowEl.parentElement;
+    const replaceCaret = () => { if (lastTyped) placeCaret(lastTyped); };
+    let nowSlotH = -1, followUntil = 0, followRaf = 0;
+    function nowSize(h) {
+      if (h === nowSlotH) return;
+      nowSlotH = h;
+      nowSlot.style.setProperty('--now-h', h + 'px');
+      followUntil = performance.now() + 800;
+      const step = () => { replaceCaret(); followRaf = performance.now() < followUntil ? requestAnimationFrame(step) : 0; };
+      if (!followRaf) followRaf = requestAnimationFrame(step);
+    }
+    const nowFit = () => { if (nowShown && nowEl.offsetHeight) nowSize(nowEl.offsetHeight + 12); };
+    // высота карточки меняется и сама (появилась строка с прогрессом, вернулись из портфолио) — следим за ней
+    if ('ResizeObserver' in window) new ResizeObserver(nowFit).observe(nowEl);
+
+    function nowRender() {
+      const n = nowCur;
+      if (n && bioIsReady) {
+        clearTimeout(nowHideTimer);   // только здесь: повторное «ничего не играет» не должно отменять начатое скрытие
+        if (!nowShown) nowEl.hidden = false;
+        nowPaint(n);
+        if (!nowShown) { nowShown = true; nowEl.getBoundingClientRect(); nowEl.classList.add('on'); }
+        nowFit();
+        if (!nowTimer) nowTimer = setInterval(nowTick, 1000);
+      } else {
+        if (nowTimer) { clearInterval(nowTimer); nowTimer = 0; }
+        if (nowShown) {
+          nowShown = false;
+          nowEl.classList.remove('on');
+          nowSize(0);
+          nowHideTimer = setTimeout(() => { nowEl.hidden = true; nowKey = ''; }, 700);
+        }
+      }
+    }
+    function nowUpdate(p) { nowCur = nowOf(p); nowRender(); }
+    bioReady.then(() => { bioIsReady = true; nowRender(); });   // карточка не лезет на экран, пока идёт интро
+
     function apply(p) {
       if (!p || typeof p.discord_status !== 'string') return false;
       const d = describe(p);
       box.dataset.state = d.st;
       since = d.since; showElapsed();
       if (d.text !== shown) { shown = d.text; srEl.textContent = 'Discord: ' + d.text; retype(d.text); }
+      nowUpdate(p);
       return true;
     }
     setInterval(showElapsed, 20000);
@@ -914,6 +1148,7 @@
       box.dataset.state = 'none';
       since = 0; showElapsed();
       if (shown !== null) { shown = null; srEl.textContent = ''; retype('( bio )'); }
+      nowUpdate(null);
     }
 
     // WebSocket: Hello(op 1) → Initialize(op 2) → события(op 0) + heartbeat(op 3); при обрыве переподключаемся.
@@ -1004,16 +1239,21 @@
     tcaret.style.transform = `translate(${((r.right - s.left) / k).toFixed(1)}px, ${((r.top - s.top) / k).toFixed(1)}px)`;
     tcaret.style.height = (r.height / k).toFixed(1) + 'px';
   }
-  async function typeEl(el, { min = 16, max = 34, caret = true } = {}) {
+  // skippable — текст из интро: если интро промотали (клик или клавиша), он допечатывается мгновенно
+  async function typeEl(el, { min = 16, max = 34, caret = true, skippable = false } = {}) {
     if (caret) tcaret.classList.remove('idle');
+    let placed = null;
     for (const c of el._chars) {
       c.classList.add('on');
-      if (caret) { placeCaret(c); tcaret.classList.add('on'); }
+      if (skippable && introSkipped) continue;
+      if (caret) { placeCaret(c); placed = c; tcaret.classList.add('on'); }
       let d = min + Math.random() * (max - min);
       if ('.!?'.includes(c.textContent)) d += 200;
       else if (',—:'.includes(c.textContent)) d += 90;
-      await sleep(d);
+      await (skippable ? isleep(d) : sleep(d));
     }
+    const lastCh = el._chars[el._chars.length - 1];
+    if (caret && lastCh && placed !== lastCh) { placeCaret(lastCh); tcaret.classList.add('on'); }   // после промотки каретка встаёт в конец текста
     if (caret) tcaret.classList.add('idle');
   }
 
@@ -1055,17 +1295,20 @@
   });
 
   async function typeContent() {
-    await typeEl($('.tagline'), { min: 20, max: 44 });
-    await sleep(240);
-    (async () => {
-      await sleep(350);
+    await typeEl($('.tagline'), { min: 20, max: 44, skippable: true });
+    await isleep(240);
+    const links = (async () => {
+      await isleep(350);
       for (const a of $$('.links .link')) {
         a.classList.add('on');
-        typeEl($('.type', a), { min: 24, max: 40, caret: false });
-        await sleep(130);
+        typeEl($('.type', a), { min: 24, max: 40, caret: false, skippable: true });
+        await isleep(130);
       }
     })();
-    await typeEl($('.about'), { min: 11, max: 25 });
+    await typeEl($('.about'), { min: 11, max: 25, skippable: true });
+    await links;
+    introPlaying = false;   // всё показано — проматывать больше нечего
+    bioReadyResolve();
   }
 
   /* ===================================================================
@@ -1186,6 +1429,7 @@
 
   function finishIntro() {
     introDone = true;
+    introLive = false;
     nick.classList.add('done');
     for (const el of [caret, inner, dot, stem]) el.style.transform = '';
     dot.style.opacity = '';
@@ -1250,31 +1494,33 @@
   }
 
   // wait — сколько каретка мигает до старта: при загрузке дольше (пока страница выходит из блюра)
+  // Все паузы здесь — isleep: клик или клавиша (skipIntro) обрывают их и доигрывают интро мгновенно.
   async function runIntro(wait = 1300) {
+    introLive = introPlaying = true;
     measure(); render();
 
     caret.classList.add('blink');
-    await sleep(wait);
+    await isleep(wait);
     caret.classList.remove('blink');
 
-    // каретка едет вправо и «проявляет» слово; буквы всё это время перебирают шрифты
-    scrambleFonts(1550 + 420 + 1000 + 150);
+    // каретка едет вправо и «проявляет» слово; буквы всё это время перебирают шрифты, а во вкладке печатается заголовок
+    if (!introSkipped) { scrambleFonts(1550 + 420 + 1000 + 150); title.type(1550); }
     await tween(1550, p => { S.caretP = S.revealP = p; render(); });
     S.masked = false; word.style.webkitMaskImage = word.style.maskImage = 'none';
-    await sleep(420);
+    await isleep(420);
 
     // возвращается влево
     await tween(1000, p => { S.backP = p; S.caretP = 1 - p; render(); });
-    await sleep(150);
+    await isleep(150);
 
     // шрифт замирает, каретка падает влево → «_», а сверху на i прилетает точка
     lockFont();
     const falling = fallCaret();
-    await sleep(340);
+    await isleep(340);
     await Promise.all([falling, dropDot()]);
 
     finishIntro();
-    await sleep(220);
+    await isleep(220);
     await typeContent();
   }
 
@@ -1343,6 +1589,7 @@
     finishIntro();
     $$('.ch', stage).forEach(c => c.classList.add('on'));
     $$('.links .link').forEach(a => a.classList.add('on'));
+    bioReadyResolve();
   }
 
   // Интро играет один раз — когда био впервые оказывается на экране
@@ -1353,6 +1600,24 @@
     introStarted = true;
     if (reducedMotion) showFinal(); else runIntro(wait);
   }
+
+  // промотка интро: клик или тап в любом месте, либо клавиша (пробел, Enter, Esc, любая буква или цифра)
+  let eatClick = null;
+  addEventListener('pointerdown', () => {
+    if (eatClick) { removeEventListener('click', eatClick, true); eatClick = null; }   // новое нажатие — прошлый «перехват» больше не нужен
+    if (!introPlaying || introSkipped) return;
+    skipIntro();
+    // Клик, которым промотали интро, не должен заодно нажать ссылку, которая в момент нажатия была ещё невидимой.
+    const eat = ev => { eatClick = null; if (ev.target.closest && ev.target.closest('.links')) { ev.preventDefault(); ev.stopPropagation(); } };
+    eatClick = eat;
+    addEventListener('click', eat, { capture: true, once: true });
+    setTimeout(() => { if (eatClick === eat) { removeEventListener('click', eat, true); eatClick = null; } }, 800);   // клика не случилось (свайп) — перехват снимаем
+  });
+  $('.links').addEventListener('focusin', skipIntro);   // Tab дошёл до ещё невидимой ссылки — показываем всё сразу
+  addEventListener('keydown', ev => {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;   // Ctrl+R, Alt+Tab и прочие сочетания — не промотка
+    if (ev.key === 'Enter' || ev.key === 'Escape' || (ev.key && ev.key.length === 1)) skipIntro();
+  });
 
   addEventListener('resize', () => { measure(); if (!introDone) render(); });
 
@@ -1586,6 +1851,26 @@
   /* ===================================================================
      вкладки «био | портфолио»: адрес …/#portfolio открывает сразу портфолио
   =================================================================== */
+  // Заголовок вкладки: на входе печатается по буквам вместе с ником, а когда вкладку сворачивают — зовёт обратно.
+  const title = (() => {
+    let text = document.title, run = 0, seen = !document.hidden;
+    // «вернись_» — только если страницу уже видели: вкладка, открытая в фоне, должна называться по-настоящему
+    const paint = () => { if (!document.hidden) seen = true; document.title = document.hidden && seen ? 'вернись_' : text; };
+    document.addEventListener('visibilitychange', paint);
+    return {
+      set(t) { run++; text = t; paint(); },
+      async type(total) {
+        const my = ++run, full = text, per = total / [...full].length;
+        for (let i = 1; i <= full.length; i++) {
+          if (my !== run) return;                       // заголовок успели сменить (открыли портфолио)
+          text = introSkipped ? full : full.slice(0, i); paint();
+          if (text === full) return;
+          await sleep(per);
+        }
+      },
+    };
+  })();
+
   const views = { bio: $('[data-view="bio"]'), portfolio: $('[data-view="portfolio"]') };
   const tabsBox = $('.tabs'), tabs = $$('.tab', tabsBox), thumb = $('.tabs__thumb'), topBar = $('.bar--top');
   const viewFromHash = () => (location.hash === '#portfolio' ? 'portfolio' : 'bio');
@@ -1606,7 +1891,7 @@
     current = name;
     tabs.forEach(t => (t.dataset.to === name ? t.setAttribute('aria-current', 'page') : t.removeAttribute('aria-current')));
     moveThumb();
-    document.title = name === 'portfolio' ? '_ilovevodka — портфолио' : '_ilovevodka';
+    title.set(name === 'portfolio' ? '_ilovevodka — портфолио' : '_ilovevodka');
 
     if (from && animate) { from.classList.add('is-leaving'); await sleep(240); }
     if (run !== navRun) return;   // пока ждали, успели переключиться ещё раз — финальное состояние выставит тот вызов
