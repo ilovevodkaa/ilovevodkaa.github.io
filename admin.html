@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>занятость · _ilovevodka</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fff'/%3E%3Crect x='14' y='42' width='36' height='7' fill='%230b0b0c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #0b0b0c;
+    --text: #2b2b30;
+    --muted: #74747c;
+    --line: #e6e6ea;
+    --font-display: "Inter Tight", "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--ink); color: #fff; }
+  .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .bg i {
+    position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(20, 20, 45, .065), rgba(20, 20, 45, 0));
+  }
+  .bg i:nth-child(1) { left: -22vmax; top: -32vmax; }
+  .bg i:nth-child(2) { right: -26vmax; bottom: -36vmax; }
+  .wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: clamp(18px, 3vw, 36px); }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .eyebrow { margin: 0; font: 400 12px/1.6 var(--font-mono); color: var(--muted); }
+  h1 { margin: .15em 0 0; font-weight: 600; font-size: clamp(36px, 6vw, 64px); letter-spacing: -.04em; line-height: 1; }
+  .lead { margin: 14px 0 0; max-width: 40em; color: var(--text); font-size: 16px; line-height: 1.5; }
+  .lang { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.7); }
+  .lang button, .btn, .cal__navbtn, .cal__day {
+    -webkit-appearance: none; appearance: none; margin: 0; border: 0; background: none; cursor: pointer;
+    font: 500 12px/1 var(--font-mono); color: var(--muted);
+  }
+  .lang button { padding: .66em .72em; border-radius: 999px; }
+  .lang button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .card {
+    margin-top: 28px; padding: 18px;
+    border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.8);
+    box-shadow: 0 34px 70px -40px rgba(10, 10, 30, .34), 0 2px 6px rgba(10, 10, 30, .04);
+  }
+  .grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 22px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  .field { display: grid; gap: 6px; margin-top: 12px; }
+  .field span, .side h2 { font: 500 12px/1.4 var(--font-mono); color: var(--muted); }
+  .side h2 { margin: 0 0 8px; color: var(--ink); font-size: 18px; font-family: var(--font-display); letter-spacing: -.02em; }
+  input[type="password"], input[type="text"], input[type="time"], textarea {
+    width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+    font: 400 15px/1.4 var(--font-display); color: var(--ink); background: #fff;
+  }
+  textarea { min-height: 72px; resize: vertical; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .btn {
+    border-radius: 999px; padding: .85em 1.15em; background: var(--ink); color: #fff; border: 1px solid var(--ink);
+  }
+  .btn--ghost { background: #fff; color: var(--ink); }
+  .btn:disabled { opacity: .5; cursor: progress; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .msg { margin: 12px 0 0; min-height: 1.2em; font: 400 13px/1.45 var(--font-mono); color: var(--text); }
+  .msg.is-bad { color: #f23f43; }
+  .cal__nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .cal__title { font: 500 14px/1 var(--font-display); letter-spacing: -.02em; }
+  .cal__navbtn { width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--line) !important; color: var(--ink); }
+  .cal__navbtn:disabled { opacity: .35; cursor: default; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal__dow { text-align: center; color: var(--muted); font: 500 11px/1 var(--font-mono); padding: 4px 0; }
+  .cal__day, .cal__empty { min-height: 44px; border-radius: 10px; }
+  .cal__day {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--ink); font: 500 13px/1 var(--font-mono);
+  }
+  .cal__day.is-today { box-shadow: inset 0 0 0 1px var(--line); }
+  .cal__day.is-busy { background: var(--ink); color: #fff; }
+  .cal__day.is-working { box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .cal__day.is-unavailable { color: var(--muted); background: #f4f4f6; text-decoration: line-through; }
+  .cal__day.is-sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .cal__day.is-working::after, .cal__legend i.is-working { background: #23a55a; }
+  .cal__day.is-working::after { content: ''; width: 4px; height: 4px; border-radius: 50%; margin-top: 4px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px;
+    padding: .65em .9em; font: 500 12px/1 var(--font-mono); cursor: pointer; color: var(--ink); background: #fff;
+  }
+  .pill input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .pill.is-on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .times { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hint { margin: 8px 0 0; color: var(--muted); font: 400 12px/1.45 var(--font-mono); }
+  .slots { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+  .slots li {
+    display: flex; justify-content: space-between; gap: 10px; align-items: center;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px;
+    font: 400 13px/1.35 var(--font-mono);
+  }
+  .slots button { font: 500 12px/1 var(--font-mono); border: 0; background: none; cursor: pointer; color: var(--muted); padding: 0; }
+  .cal__legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 12px 0 0; padding: 0; list-style: none; color: var(--muted); font: 400 12px/1 var(--font-mono); }
+  .cal__legend li { display: inline-flex; align-items: center; gap: 6px; }
+  .cal__legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .cal__legend i.is-busy { background: var(--ink); }
+  .cal__legend i.is-unavailable { background: #d4d4db; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"><i></i><i></i></div>
+  <div class="wrap">
+    <div class="top">
+      <p class="eyebrow" data-i18n="adminEyebrow">( админка )</p>
+      <div class="lang" role="group" data-i18n-aria="langLabel" aria-label="Язык">
+        <button type="button" data-set-lang="ru">ru</button>
+        <button type="button" data-set-lang="en">en</button>
+      </div>
+    </div>
+    <h1 data-i18n="adminTitleH">Занятость</h1>
+    <p class="lead" id="admin-lead" data-i18n="adminLead"></p>
+
+    <section class="card" id="login-card">
+      <p class="hint" data-i18n="loginLead"></p>
+      <form id="login-form">
+        <label class="field">
+          <span data-i18n="password">Пароль</span>
+          <input type="password" id="admin-pass" autocomplete="current-password" required>
+        </label>
+        <div class="row"><button class="btn" type="submit" data-i18n="enter">войти</button></div>
+        <p class="msg" id="login-msg" role="alert"></p>
+      </form>
+    </section>
+
+    <section class="card" id="app-card" hidden>
+      <div class="row" style="margin-top:0">
+        <button class="btn btn--ghost" type="button" id="logout" data-i18n="logout">выйти</button>
+      </div>
+      <div class="grid">
+        <div>
+          <div class="cal__nav">
+            <button class="cal__navbtn" type="button" id="cal-prev" data-i18n-aria="calPrev" aria-label="предыдущий месяц">‹</button>
+            <span class="cal__title" id="cal-title"></span>
+            <button class="cal__navbtn" type="button" id="cal-next" data-i18n-aria="calNext" aria-label="следующий месяц">›</button>
+          </div>
+          <div id="cal-grid"></div>
+          <ul class="cal__legend">
+            <li><i class="is-busy"></i><span data-i18n="stBusy">занят</span></li>
+            <li><i class="is-working"></i><span data-i18n="stWorking">работаю</span></li>
+            <li><i class="is-unavailable"></i><span data-i18n="stOff">недоступен</span></li>
+          </ul>
+        </div>
+        <div class="side">
+          <h2 id="day-title"></h2>
+          <ul class="slots" id="day-slots"></ul>
+          <p class="hint" id="day-empty" data-i18n="dayEmpty"></p>
+          <form id="slot-form">
+            <div class="field">
+              <span data-i18n="statusLabel">Статус</span>
+              <div class="pills" id="status-pills"></div>
+            </div>
+            <div class="times">
+              <label class="field"><span data-i18n="timeFrom">С</span><input type="time" id="slot-start"></label>
+              <label class="field"><span data-i18n="timeTo">До</span><input type="time" id="slot-end"></label>
+            </div>
+            <p class="hint" data-i18n="allDayHint"></p>
+            <label class="field">
+              <span data-i18n="note">Заметка</span>
+              <textarea id="slot-note" data-i18n-placeholder="notePh" placeholder=""></textarea>
+            </label>
+            <div class="row">
+              <button class="btn" type="submit" id="slot-save" data-i18n="save">сохранить</button>
+              <button class="btn btn--ghost" type="button" id="slot-cancel" hidden data-i18n="cancel">отмена</button>
+            </div>
+            <p class="msg" id="app-msg" role="status"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script src="config.js"></script>
+<script src="i18n.js"></script>
+<script src="api.js"></script>
+<script src="calendar.js"></script>
+<script>
+(() => {
+  'use strict';
+  const T = (k, v) => SiteI18n.t(k, v);
+  const $ = (s, r = document) => r.querySelector(s);
+  const KEY = 'ilovevodka-admin';
+  let password = '';
+  try { password = sessionStorage.getItem(KEY) || ''; } catch (e) {}
+  let slots = [];
+  const now = new Date();
+  let month = { y: now.getFullYear(), m: now.getMonth() };
+  let picked = SiteCal.iso(now);
+  let editing = null;
+  let status = 'busy';
+  let armedDelete = '';
+
+  const loginCard = $('#login-card');
+  const appCard = $('#app-card');
+
+  function say(el, text, bad) {
+    el.textContent = text || '';
+    el.classList.toggle('is-bad', !!bad);
+  }
+
+  function showLogin(msg, bad) {
+    appCard.hidden = true;
+    loginCard.hidden = false;
+    $('#admin-lead').textContent = T('adminLead');
+    say($('#login-msg'), msg || '', bad);
+  }
+
+  function showApp() {
+    loginCard.hidden = true;
+    appCard.hidden = false;
+    render();
+  }
+
+  function statusName(st) {
+    if (st === 'working') return T('stWorking');
+    if (st === 'unavailable') return T('stOff');
+    return T('stBusy');
+  }
+
+  function rangeLabel(slot) {
+    if (!slot.start && !slot.end) return T('allDay');
+    if (slot.start && slot.end) return slot.start + '–' + slot.end;
+    if (slot.start) return T('fromTime', { time: slot.start });
+    return T('untilTime', { time: slot.end });
+  }
+
+  function renderStatus() {
+    const wrap = $('#status-pills');
+    wrap.replaceChildren();
+    for (const id of ['busy', 'working', 'unavailable']) {
+      const label = document.createElement('label');
+      label.className = 'pill' + (status === id ? ' is-on' : '');
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'status';
+      input.value = id;
+      input.checked = status === id;
+      label.append(input, document.createTextNode(statusName(id)));
+      input.addEventListener('change', () => { status = id; renderStatus(); });
+      wrap.appendChild(label);
+    }
+  }
+
+  function render() {
+    document.title = T('adminTitle');
+    $('#cal-title').textContent = SiteCal.monthTitle(month.y, month.m, SiteI18n.lang);
+    const min = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+    const max = new Date(now.getFullYear(), now.getMonth() + 24, 1);
+    $('#cal-prev').disabled = new Date(month.y, month.m, 1) <= min;
+    $('#cal-next').disabled = new Date(month.y, month.m, 1) >= max;
+    $('#cal-grid').replaceChildren(SiteCal.renderGrid({
+      year: month.y, month: month.m, slots, selected: picked, lang: SiteI18n.lang,
+      label(day, st) {
+        const base = new Intl.DateTimeFormat(SiteI18n.lang === 'en' ? 'en-GB' : 'ru-RU', { day: 'numeric', month: 'long' }).format(SiteCal.parseISO(day));
+        return st ? base + ', ' + statusName(st) : base;
+      },
+      onPick(day) { picked = day; editing = null; armedDelete = ''; fillForm(null); render(); },
+    }));
+    const date = SiteCal.parseISO(picked);
+    $('#day-title').textContent = date
+      ? new Intl.DateTimeFormat(SiteI18n.lang === 'en' ? 'en-GB' : 'ru-RU', { day: 'numeric', month: 'long', weekday: 'long' }).format(date)
+      : '';
+    const list = $('#day-slots');
+    const daySlots = SiteCal.slotsOn(slots, picked);
+    list.replaceChildren();
+    $('#day-empty').hidden = daySlots.length > 0;
+    for (const slot of daySlots) {
+      const li = document.createElement('li');
+      const text = document.createElement('span');
+      text.textContent = statusName(slot.status) + ' · ' + rangeLabel(slot) + (slot.note ? ' — ' + slot.note : '');
+      const actions = document.createElement('span');
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.textContent = T('edit');
+      edit.addEventListener('click', () => { editing = slot.id; fillForm(slot); $('#slot-cancel').hidden = false; });
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.textContent = armedDelete === slot.id ? T('confirmDel') : T('del');
+      del.addEventListener('click', () => onDelete(slot.id, del));
+      actions.append(edit, document.createTextNode('  '), del);
+      li.append(text, actions);
+      list.appendChild(li);
+    }
+    renderStatus();
+    $('#slot-save').textContent = T('save');
+    $('#slot-cancel').textContent = T('cancel');
+  }
+
+  function fillForm(slot) {
+    status = slot ? slot.status : 'busy';
+    $('#slot-start').value = slot && slot.start ? slot.start : '';
+    $('#slot-end').value = slot && slot.end ? slot.end : '';
+    $('#slot-note').value = slot && slot.note ? slot.note : '';
+    $('#slot-cancel').hidden = !slot;
+    renderStatus();
+  }
+
+  async function enter(pass) {
+    say($('#login-msg'), '', false);
+    const res = await SiteApi.post({ action: 'login', password: pass });
+    password = pass;
+    try { sessionStorage.setItem(KEY, pass); } catch (e) {}
+    const data = await SiteApi.post({ action: 'slots', password: pass });
+    slots = data.slots || [];
+    showApp();
+    return res;
+  }
+
+  async function onDelete(id, btn) {
+    if (armedDelete !== id) {
+      armedDelete = id;
+      btn.textContent = T('confirmDel');
+      setTimeout(() => { if (armedDelete === id) { armedDelete = ''; render(); } }, 2500);
+      return;
+    }
+    armedDelete = '';
+    try {
+      const data = await SiteApi.post({ action: 'delete', password, id });
+      slots = data.slots || [];
+      if (editing === id) { editing = null; fillForm(null); }
+      say($('#app-msg'), T('deleted'), false);
+      render();
+    } catch (err) {
+      if (err && (err.code === 'unauthorized' || err.code === 'config')) { password = ''; try { sessionStorage.removeItem(KEY); } catch (e) {} showLogin(T('badPassword'), true); return; }
+      say($('#app-msg'), T(err && err.code === 'rate' ? 'rateAdmin' : 'errSave'), true);
+    }
+  }
+
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest && ev.target.closest('[data-set-lang]');
+    if (b) SiteI18n.set(b.dataset.setLang);
+  });
+
+  $('#login-form').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    if (!SiteApi.backendUrl()) { say($('#login-msg'), T('noBackend'), true); return; }
+    const pass = $('#admin-pass').value;
+    const btn = ev.submitter || $('button', ev.target);
+    btn.disabled = true;
+    try {
+      await enter(pass);
+    } catch (err) {
+      const code = err && err.code;
+      say($('#login-msg'), T(code === 'rate' ? 'rateAdmin' : code === 'config' ? 'noBackend' : 'badPassword'), true);
+    } finally { btn.disabled = false; }
+  });
+
+  $('#logout').addEventListener('click', () => {
+    password = '';
+    try { sessionStorage.removeItem(KEY); } catch (e) {}
+    showLogin('', false);
+  });
+  $('#cal-prev').addEventListener('click', () => { month = { y: month.y, m: month.m - 1 }; if (month.m < 0) { month.m = 11; month.y--; } render(); });
+  $('#cal-next').addEventListener('click', () => { month = { y: month.y, m: month.m + 1 }; if (month.m > 11) { month.m = 0; month.y++; } render(); });
+
+  $('#slot-form').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const start = $('#slot-start').value;
+    const end = $('#slot-end').value;
+    if (start && end && start >= end) { say($('#app-msg'), T('errSave'), true); return; }
+    const btn = $('#slot-save');
+    btn.disabled = true;
+    try {
+      const data = await SiteApi.post({
+        action: 'save',
+        password,
+        slot: { id: editing || '', date: picked, start, end, status, note: $('#slot-note').value.trim() },
+      });
+      slots = data.slots || [];
+      editing = null;
+      fillForm(null);
+      say($('#app-msg'), T('saved'), false);
+      render();
+    } catch (err) {
+      if (err && (err.code === 'unauthorized' || err.code === 'config')) { password = ''; try { sessionStorage.removeItem(KEY); } catch (e) {} showLogin(T('badPassword'), true); return; }
+      say($('#app-msg'), T(err && err.code === 'rate' ? 'rateAdmin' : 'errSave'), true);
+    } finally { btn.disabled = false; }
+  });
+  $('#slot-cancel').addEventListener('click', () => { editing = null; fillForm(null); });
+
+  function paint() {
+    SiteI18n.applyStatic(document);
+    document.title = T('adminTitle');
+    if (!appCard.hidden) render();
+    if (!SiteApi.backendUrl()) {
+      $('#admin-lead').textContent = T('noBackend');
+    }
+  }
+  SiteI18n.on(paint);
+  paint();
+
+  if (!SiteApi.backendUrl()) showLogin('', false);
+  else if (password) {
+    enter(password).catch(() => { password = ''; try { sessionStorage.removeItem(KEY); } catch (e) {} showLogin('', false); });
+  } else showLogin('', false);
+})();
+</script>
+</body>
+</html>
